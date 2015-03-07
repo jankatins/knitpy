@@ -4,7 +4,7 @@ setup(
     name='knitpy',
     version='0.1.0',
     description='Elegant, flexible and fast dynamic report generation with python',
-    #long_description=open('README').read(),
+    long_description=open('README.md').read(),
     author='Jan Schulz',
     author_email='jasc@gmx.net',
     url='https://github.com/janschulz/knitpy/issues',
