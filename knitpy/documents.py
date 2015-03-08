@@ -122,18 +122,3 @@ class MarkdownOutputDocument(LoggingConfigurable):
     def add_text(self, text):
         self._add_to_cache(text, TEXT)
 
-    def convert(self):
-        from IPython.nbconvert.utils.pandoc import pandoc
-        format = "markdown" \
-                 "+autolink_bare_uris" \
-                 "+ascii_identifiers" \
-                 "+tex_math_single_backslash-implicit_figures" \
-                 "+fenced_code_attributes"
-        extra = ["--smart", # typographically correct output (curly quotes, etc)
-                 "--email-obfuscation", "none", #do not obfuscation email names with javascript
-                 "--self-contained", # include img/scripts as data urls
-                 "--standalone", # html with header + footer
-                 "--section-divs",
-                 ]
-        exported = pandoc("".join(self._output), format, to=self.export_format, extra_args=extra )
-        return exported

@@ -45,6 +45,7 @@ from IPython.kernel.kernelspec import KernelSpecManager
 from .documents import MarkdownOutputDocument
 from .engines import BaseKnitpyEngine, PythonKnitpyEngine
 from .utils import get_by_name, CRegExpMultiline, _plain_text, _code
+from .pandoc import pandoc
 
 TBLOCK, TINLINE, TTEXT = range(3)
 
@@ -525,13 +526,28 @@ class Knitpy(LoggingConfigurable):
                     f.write(md_temp.content)
 
             # convert the md file to the final filetype
-            # TODO: pull pandoc invocation down into this class
-            converted = md_temp.convert()
+            input_format = "markdown" \
+                           "+autolink_bare_uris" \
+                           "+ascii_identifiers" \
+                           "+tex_math_single_backslash-implicit_figures" \
+                           "+fenced_code_attributes"
 
-            # safe the resulting document
+            extra = ["--smart", # typographically correct output (curly quotes, etc)
+                     "--email-obfuscation", "none", #do not obfuscation email names with javascript
+                     "--self-contained", # include img/scripts as data urls
+                     "--standalone", # html with header + footer
+                     "--section-divs",
+                     ]
+
             outfilename = basename+"." +fmt[:-9]
-            with codecs.open(outfilename, 'w+b','UTF-8') as f:
-                f.write(converted)
+
+            # exported is irrelevant, as we pass in a filename
+            exported = pandoc(source=md_temp.content,
+                              fmt=input_format,
+                              to=md_temp.export_format,
+                              extra_args=extra,
+                              outputfilename=outfilename)
+
             return outfilename
 
 
