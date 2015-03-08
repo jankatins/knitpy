@@ -12,10 +12,11 @@ are (aem... can potentially be) supported.
 ## What works:
 * converting a simple pymd file via `knitpy document.pymd`. Both code blocks and 
   inline code are supported
+* output format `html` and `docx`
 * debugging: ``--debug`, `--kernel-debug=True`
 
 ## What does not work (=everything else :-) ):
-* other output format than html
+* other output format than html and docx
 * YAML headers are currently ignored...
 * arguments for code blocks (`{python block_name, arg=val}` -> currently, everything 
   after `python` will be ignored...
@@ -25,10 +26,11 @@ are (aem... can potentially be) supported.
 
 ## Todo
 * fix the above...
+* fix output format: what should be exported in knitpyapp, knitpy and how should the return 
+  from knitpy.render look like
 * refactor the parsing, so that it is line based
   - errors make more sense, because it knows the line ("block starting at line....")
 * make output format configurable
-* change the pandoc calls (should use NamedTempfile for output, as docx does not support stdout)
 * unittests...
   - should probably be done by a simple dir + textfiles ala test_input.pymd, test_output.md
   - codeblocks + inline
