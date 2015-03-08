@@ -1,10 +1,13 @@
 from setuptools import setup
 
+from knitpy.pandoc import pandoc
+long_desc = pandoc(open('README.md').read(), fmt="markdown", to="rst")
+
 setup(
     name='knitpy',
     version='0.1.0',
     description='Elegant, flexible and fast dynamic report generation with python',
-    long_description=open('README.md').read(),
+    long_description=long_desc,
     author='Jan Schulz',
     author_email='jasc@gmx.net',
     url='https://github.com/janschulz/knitpy/issues',
@@ -31,6 +34,7 @@ setup(
         ]
     },
     install_requires = [
-        'IPython>=3.0'
+        'IPython>=3.0',
+        'pyyaml',
     ]
 )
