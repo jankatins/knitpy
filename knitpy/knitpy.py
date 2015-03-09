@@ -237,7 +237,7 @@ class Knitpy(LoggingConfigurable):
                     # comments should go to to the next code block
                     lines += "\n"
                     continue
-                self._run_lines(lines+"\n\n", context)
+                self._run_lines(lines+"\n", context)
                 lines = ""
             elif reply['content']['status'] == 'invalid':
                 # TODO: not sure how this should be handled
@@ -307,7 +307,7 @@ class Knitpy(LoggingConfigurable):
                 self.log.debug("Discarding message from a different client: %s" % msg)
                 continue
 
-        # Now look at the results of our code execution and earlier completition requests
+        # Now look at the results of our code execution and earlier completion requests
         # We handle messages until the kernel indicates it's ide again
         status_idle_again = False
         while True:
