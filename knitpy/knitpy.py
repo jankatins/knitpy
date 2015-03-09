@@ -55,7 +55,7 @@ class KnitpyException(Exception):
 class ParseException(KnitpyException):
     pass
 
-from .documents import VALID_OUTPUT_FORMATS, DEFAULT_OUTPUT_FORMAT
+from .documents import OUTPUT_FORMATS, VALID_OUTPUT_FORMATS, DEFAULT_OUTPUT_FORMAT
 
 class Knitpy(LoggingConfigurable):
     """Engine used to convert from python markdown (``*.pymd``) to html/latex/..."""
@@ -193,6 +193,9 @@ class Knitpy(LoggingConfigurable):
                 raise ParseException("Found something unexpected: %s" % entry)
         # process_code opened kernels, so close them here
         self._km.shutdown_all()
+        # workaround for https://github.com/ipython/ipython/issues/8007
+        self._km._kernels.clear()
+        self._kernels = {}
         return output
 
     def _process_code(self, input, mode, output):
@@ -465,9 +468,11 @@ class Knitpy(LoggingConfigurable):
         """
         # Export each documents
         conversion_success = 0
+        converted_docs = []
 
         # save here to change back after the conversation.
-        cwd = os.getcwd()
+        orig_cwd = os.getcwd()
+        needs_chdir = False
 
         # expand $HOME and so on...
         filename = expand_path(filename)
@@ -479,6 +484,7 @@ class Knitpy(LoggingConfigurable):
         # It's easier if we just change wd to the dir of the file
         if unicode_type(basedir) != py3compat.getcwd():
             os.chdir(basedir)
+            needs_chdir = True
             self.log.info("Changing to working dir: %s" % basedir)
             filename = os.path.basename(filename)
 
@@ -539,16 +545,21 @@ class Knitpy(LoggingConfigurable):
                      "--section-divs",
                      ]
 
-            outfilename = basename+"." +fmt[:-9]
+            format, fileending = OUTPUT_FORMATS[fmt[:-9]]
+
+            outfilename = basename+"." +fileending
 
             # exported is irrelevant, as we pass in a filename
             exported = pandoc(source=md_temp.content,
-                              to=md_temp.export_format,
+                              to=format,
                               format=input_format,
                               extra_args=extra,
                               outputfile=outfilename)
-
-            return outfilename
+            self.log.info("Written final output: %s" % outfilename)
+            converted_docs.append(os.path.join(basedir, outfilename))
+        if needs_chdir:
+            os.chdir(orig_cwd)
+        return converted_docs
 
 
     def _ensure_valid_output(self, fmt):

@@ -9,7 +9,15 @@ from IPython.utils.traitlets import Bool, Unicode, CaselessStrEnum
 from .utils import is_iterable, is_string
 
 TEXT, OUTPUT, CODE = range(3)
-VALID_OUTPUT_FORMATS = ["html", "docx"]
+
+OUTPUT_FORMATS = {
+    #name: (pandoc_to_format, fileending)
+    "html": ("html", "html"),
+    "pdf": ("latex", "pdf"),
+    "docx": ("docx", "docx")
+}
+
+VALID_OUTPUT_FORMATS = OUTPUT_FORMATS.keys()
 DEFAULT_OUTPUT_FORMAT = "html"
 
 class MarkdownOutputDocument(LoggingConfigurable):

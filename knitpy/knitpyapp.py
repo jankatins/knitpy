@@ -204,7 +204,7 @@ class KnitpyApp(BaseIPythonApplication):
         for document_filename in self.documents:
 
             try:
-                outfilename = kp.render(document_filename, output=self.export_format)
+                outfilenames = kp.render(document_filename, output=self.export_format)
             except ParseException as pe:
                 self.log.error(str(pe))
                 self.log.error("Error while converting '%s'. Aborting...", document_filename)
@@ -217,7 +217,7 @@ class KnitpyApp(BaseIPythonApplication):
             #Todo: add a config value... auto-open
             if self.export_format in ["html", "htm"]:
                 import webbrowser
-                webbrowser.open(outfilename)
+                webbrowser.open(outfilenames[0])
             conversion_success += 1
 
         # If nothing was converted successfully, help the user.
