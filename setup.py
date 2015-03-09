@@ -35,6 +35,7 @@ setup(
     },
     install_requires = [
         'IPython>=3.0',
+        'pypandoc>=0.9.4',
         'pyyaml',
     ]
 )

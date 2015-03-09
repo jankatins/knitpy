@@ -45,7 +45,7 @@ from IPython.kernel.kernelspec import KernelSpecManager
 from .documents import MarkdownOutputDocument
 from .engines import BaseKnitpyEngine, PythonKnitpyEngine
 from .utils import get_by_name, CRegExpMultiline, _plain_text, _code
-from .pandoc import pandoc
+from pypandoc import convert as pandoc
 
 TBLOCK, TINLINE, TTEXT = range(3)
 
@@ -543,10 +543,10 @@ class Knitpy(LoggingConfigurable):
 
             # exported is irrelevant, as we pass in a filename
             exported = pandoc(source=md_temp.content,
-                              fmt=input_format,
                               to=md_temp.export_format,
+                              format=input_format,
                               extra_args=extra,
-                              outputfilename=outfilename)
+                              outputfile=outfilename)
 
             return outfilename
 
