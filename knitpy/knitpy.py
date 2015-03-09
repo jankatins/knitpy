@@ -208,13 +208,12 @@ class Knitpy(LoggingConfigurable):
 
 
         args = self._parse_args(raw_args)
-        self.log.debug("Found Args: %s", args)
+
 
         # for compatibility with knitr, where python is specified via "{r engine='python'}"
         if "engine" in args:
-            engine_name = args["engine"]
+            engine_name = args.pop("engine")
             self.log.debug("Running on engin: %s", engine_name)
-
 
         try:
             engine = self._engines[engine_name]
@@ -222,6 +221,15 @@ class Knitpy(LoggingConfigurable):
             raise ParseException("Unknown codeblock type: %s" % engine_name)
         assert not engine is None, "Engine is None"
         context = ExecutionContext(mode=mode, engine=engine, output=output)
+
+
+        # configure the context
+        if "echo" in args:
+            context.echo = args.pop("echo")
+
+        if args:
+            self.log.debug("Found unhandled args: %s", args)
+
 
         lines = ''
         for line in code.split('\n'):
@@ -267,6 +275,14 @@ class Knitpy(LoggingConfigurable):
             return args
         # The first is special as that can be the name of the chunk
         first = True
+        converter = {
+            "True":True,
+            "False":False,
+            "T":True, # Rs True/False
+            "F":False,
+            "TRUE":True,
+            "FALSE":False,
+        }
         for arg in raw_args.split(","):
             arg = arg.strip()
             if not "=" in arg:
@@ -277,9 +293,22 @@ class Knitpy(LoggingConfigurable):
                 continue
             label, value = arg.split("=")
             v = value.strip()
-            # remove quotes -> could be done by sending this to the kernel...
-            v = v[1:-1] if (v[0] == '"' and v[-1] == '"') else v
-            v = v[1:-1] if (v[0] == "'" and v[-1] == "'") else v
+            # convert to real types.
+            # TODO: Should be done by submitting the whole thing to the kernel, like knitr does
+            # -> variables form one codecell can be used in the args of the next one ...
+            if (v[0] == '"' and v[-1] == '"'):
+                v = v[1:-1]
+            elif (v[0] == "'" and v[-1] == "'"):
+                v = v[1:-1]
+            elif v in converter:
+                v = converter[v]
+            else:
+                try:
+                    v = int(v)
+                except:
+                    self.log.error("Could not decode arg value: '%s=%s'. Discarded...", label, v)
+                    continue
+
             args[label.strip()] = v
 
         return args
@@ -368,7 +397,8 @@ class Knitpy(LoggingConfigurable):
             #self.log.debug("block: %s" % msg)
             type = msg["msg_type"]
             if type == "execute_input":
-                context.output.add_code(_code(msg[u'content']))
+                if context.echo:
+                    context.output.add_code(_code(msg[u'content']))
             elif type == "execute_result":
                 context.output.add_output(_plain_text(msg["content"]))
             elif type == "stream":
@@ -582,6 +612,8 @@ class ExecutionContext(LoggingConfigurable):
     output = Instance(klass=MarkdownOutputDocument, allow_none=True, config=False,
                             help="The current output document")
 
+    echo = Bool(True,config=True, help="If FALSE, knitpy will not display the code in the code "
+                                        "chunk above it’s results in the final document.")
 
     def __init__(self, mode, engine, output, **kwargs):
         super(ExecutionContext,self).__init__(**kwargs)
