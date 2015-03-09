@@ -101,7 +101,7 @@ class KnitpyApp(BaseIPythonApplication):
         return logging.INFO
 
     def _classes_default(self):
-        classes = [MarkdownOutputDocument, ProfileDir, ]
+        classes = [KnitpyApp, Knitpy, MarkdownOutputDocument, ProfileDir, ]
         # TODO: engines should be added here
         return classes
 
