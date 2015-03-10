@@ -8,7 +8,7 @@ from IPython.utils.traitlets import Bool, Unicode, CaselessStrEnum
 
 from .utils import is_iterable, is_string
 
-TEXT, OUTPUT, CODE, ASIS = range(4)
+TEXT, OUTPUT, CODE, ASIS = "text", "output", "code", "asis"
 
 OUTPUT_FORMATS = {
     #name: (pandoc_to_format, fileending)
@@ -79,6 +79,8 @@ class MarkdownOutputDocument(LoggingConfigurable):
     _cache_output = []
 
     def flush(self):
+        if self.output_debug:
+            self.log.debug("Flushing caches in output.")
         if self._cache_text:
             self._output.extend(self._cache_text)
             self._cache_text = []
@@ -99,6 +101,17 @@ class MarkdownOutputDocument(LoggingConfigurable):
             self._cache_output = []
 
     def _add_to_cache(self, content, content_type):
+
+        if is_string(content):
+            content = [content]
+        elif is_iterable(content):
+            pass
+        else:
+            content = [u"%s" % content]
+
+        if self.output_debug:
+            self.log.debug("Adding '%s': %s", content_type, content)
+
         if content_type != self._last_content:
             self.flush()
         if content_type == CODE:
@@ -115,12 +128,7 @@ class MarkdownOutputDocument(LoggingConfigurable):
             cache = self._cache_text
             self._last_content = TEXT
 
-        if is_string(content):
-            cache.append(content)
-        elif is_iterable(content):
-            cache.extend(content)
-        else:
-            cache.append(content)
+        cache.extend(content)
 
     def add_code(self, code, language="python"):
         if language != self._cache_code_language:

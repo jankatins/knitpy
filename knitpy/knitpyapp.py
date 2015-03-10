@@ -77,11 +77,13 @@ knitpy_flags.update({
         "keep temporary markdown files"
     ),
     'kernel-debug' : (
-        {'Knitpy' : {'kernel_debug' : True}},
+        {'Knitpy' : {'kernel_debug' : True},
+         "KnitpyApp":{"log_level":logging.DEBUG}},
         "send kernel messages to debug log (implies log-level=DEBUG)"
     ),
     'output-debug' : (
-        {'MarkdownOutputDocument': {'output_debug': True}},
+        {'MarkdownOutputDocument': {'output_debug': True},
+         "KnitpyApp":{"log_level":logging.DEBUG}},
         "send output to debug log (implies log-level=DEBUG)"
     )
 })
