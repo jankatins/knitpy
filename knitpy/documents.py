@@ -8,7 +8,7 @@ from IPython.utils.traitlets import Bool, Unicode, CaselessStrEnum
 
 from .utils import is_iterable, is_string
 
-TEXT, OUTPUT, CODE = range(3)
+TEXT, OUTPUT, CODE, ASIS = range(4)
 
 OUTPUT_FORMATS = {
     #name: (pandoc_to_format, fileending)
@@ -107,6 +107,10 @@ class MarkdownOutputDocument(LoggingConfigurable):
         elif content_type == OUTPUT:
             cache = self._cache_output
             self._last_content = OUTPUT
+        elif content_type == ASIS:
+            # just add it as normal text
+            cache = self._cache_text
+            self._last_content = TEXT
         else:
             cache = self._cache_text
             self._last_content = TEXT
@@ -130,3 +134,5 @@ class MarkdownOutputDocument(LoggingConfigurable):
     def add_text(self, text):
         self._add_to_cache(text, TEXT)
 
+    def add_asis(self, text):
+        self._add_to_cache(text, ASIS)

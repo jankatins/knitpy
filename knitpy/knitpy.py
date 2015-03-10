@@ -151,6 +151,8 @@ class Knitpy(LoggingConfigurable):
             # process the text before the match
             text = doc[doc_pos:block_start.start()]
             self._parse_inline(text, result)
+            # TODO: somehow a empty line before a codeblock vanishes, so add one here
+            result.append((TTEXT,"\n"))
             # now the block itself
             # find the end of the block
             block_end = self.chunk_end.search(doc, block_start.end())
@@ -226,6 +228,10 @@ class Knitpy(LoggingConfigurable):
         # configure the context
         if "echo" in args:
             context.echo = args.pop("echo")
+
+        if "results" in args:
+            context.results = args.pop("results")
+
 
         if args:
             self.log.debug("Found unhandled args: %s", args)
@@ -399,12 +405,25 @@ class Knitpy(LoggingConfigurable):
             if type == "execute_input":
                 if context.echo:
                     context.output.add_code(_code(msg[u'content']))
-            elif type == "execute_result":
-                context.output.add_output(_plain_text(msg["content"]))
-            elif type == "stream":
-                # {u'text': u'a\nb\nc\n', u'name': u'stdout'}
-                # TODO: format stdout and stderr differently
-                context.output.add_output(msg["content"].get("text",""))
+            elif (type == "execute_result") or (type == "stream"):
+                if type == "execute_result":
+                    txt = _plain_text(msg["content"])
+                else:
+                    # {u'text': u'a\nb\nc\n', u'name': u'stdout'}
+                    # TODO: format stdout and stderr differently?
+                    txt = msg["content"].get("text","")
+                if txt.strip() == "":
+                    return
+                if context.results == 'markup':
+                    context.output.add_output(txt)
+                elif context.results == 'asis':
+                    context.output.add_asis(txt)
+                elif context.results == 'hide':
+                    pass
+                else:
+                    # TODO: implement a caching system... again...
+                    self.log.warn("Can't handle results='hold' yet, falling back to 'markup'.")
+                    context.output.add_output(txt)
             elif type == "display_data":
                 # TODO: Put that into it's own place?
                 # Some should go to a output specific class (raw html, etc; ordering/preference of
@@ -612,8 +631,16 @@ class ExecutionContext(LoggingConfigurable):
     output = Instance(klass=MarkdownOutputDocument, allow_none=True, config=False,
                             help="The current output document")
 
-    echo = Bool(True,config=True, help="If FALSE, knitpy will not display the code in the code "
+    echo = Bool(True,config=True, help="If False, knitpy will not display the code in the code "
                                         "chunk above it’s results in the final document.")
+
+    results = CaselessStrEnum(default_value="markup", values=["markup", "hide", "hold", "asis"],
+                              allow_none=False, config=True,
+                              help="If 'hide', knitpy will not display the code’s results in the "
+                                   "final document. If 'hold', knitpy will delay displaying all  "
+                                   "output pieces until the end of the chunk. If 'asis', "
+                                   "knitpy will pass through results without reformatting them "
+                                   "(useful if results return raw HTML, etc.)")
 
     def __init__(self, mode, engine, output, **kwargs):
         super(ExecutionContext,self).__init__(**kwargs)
