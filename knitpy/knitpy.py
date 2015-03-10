@@ -237,6 +237,9 @@ class Knitpy(LoggingConfigurable):
         if "results" in args:
             context.results = args.pop("results")
 
+        if "include" in args:
+            context.include = args.pop("include")
+
         if args:
             self.log.debug("Found unhandled args: %s", args)
 
@@ -391,7 +394,8 @@ class Knitpy(LoggingConfigurable):
             ## So, from here on we have a messages with real content
             if self.kernel_debug:
                 self.log.debug("iopub msg (%s): %s",msg_type, msg)
-            self._handle_return_message(msg, context)
+            if context.include:
+                self._handle_return_message(msg, context)
 
         if not status_idle_again:
             self.log.error("Code lines didn't execute in time. Don't use long-running code in "
@@ -645,6 +649,9 @@ class ExecutionContext(LoggingConfigurable):
                                    "output pieces until the end of the chunk. If 'asis', "
                                    "knitpy will pass through results without reformatting them "
                                    "(useful if results return raw HTML, etc.)")
+
+    include = Bool(True,config=True, help="If False, knitpy will will run the chunk but not "
+                                          "include the chunk in the final document.")
 
     def __init__(self, mode, engine, output, **kwargs):
         super(ExecutionContext,self).__init__(**kwargs)
