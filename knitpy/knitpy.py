@@ -211,6 +211,11 @@ class Knitpy(LoggingConfigurable):
 
         args = self._parse_args(raw_args)
 
+        # eval=False means that we don't execute the block at all
+        if "eval" in args:
+            _eval =  args.pop("eval")
+            if _eval is False:
+                return
 
         # for compatibility with knitr, where python is specified via "{r engine='python'}"
         if "engine" in args:
@@ -231,7 +236,6 @@ class Knitpy(LoggingConfigurable):
 
         if "results" in args:
             context.results = args.pop("results")
-
 
         if args:
             self.log.debug("Found unhandled args: %s", args)
