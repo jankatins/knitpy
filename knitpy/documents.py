@@ -1,10 +1,14 @@
 from __future__ import absolute_import, unicode_literals
 
 import os
+import tempfile
+from collections import OrderedDict
+from pypandoc import convert as pandoc
+
 
 # Basic things from IPython
 from IPython.config.configurable import LoggingConfigurable
-from IPython.utils.traitlets import Bool, Unicode, CaselessStrEnum
+from IPython.utils.traitlets import Bool, Unicode, CaselessStrEnum, List
 
 from .utils import is_iterable, is_string
 
@@ -19,6 +23,15 @@ OUTPUT_FORMATS = {
 
 VALID_OUTPUT_FORMATS = OUTPUT_FORMATS.keys()
 DEFAULT_OUTPUT_FORMAT = "html"
+
+IMAGE_FORMAT_FILEENDINGS = OrderedDict([("image/png","png"), ("image/svg","svg")])
+MARKUP_FORMAT_CONVERTER = OrderedDict([("text/markdown", "markdown"),
+                                       ("text/x-markdown", "markdown"),
+                                       ("text/html", "html"),
+                                       ("text/latex", "latex")])
+
+class KnitpyOutputException(Exception):
+    pass
 
 class MarkdownOutputDocument(LoggingConfigurable):
 
@@ -40,6 +53,14 @@ class MarkdownOutputDocument(LoggingConfigurable):
         help="""The export format to be used."""
     )
 
+
+    plot_mimetypes = List(default_value=IMAGE_FORMAT_FILEENDINGS.keys(), allow_none=False,
+                          config=True,
+                          help="Mimetimpes, which should be handled as plots.")
+
+    markup_mimetypes = List(default_value=MARKUP_FORMAT_CONVERTER.keys(), allow_none=False,
+                          config=True,
+                          help="Mimetimpes, which should be handled as markeduped text")
 
     def __init__(self, fileoutputs, export_format="html", **kwargs):
         super(MarkdownOutputDocument,self).__init__(**kwargs)
@@ -142,5 +163,65 @@ class MarkdownOutputDocument(LoggingConfigurable):
     def add_text(self, text):
         self._add_to_cache(text, TEXT)
 
-    def add_asis(self, text):
-        self._add_to_cache(text, ASIS)
+    def add_asis(self, content):
+        self._add_to_cache(content, ASIS)
+
+    def add_image(self, mimetype, mimedata, title=""):
+        try:
+            import base64
+            mimedata = base64.decodestring(mimedata)
+            # save as a file
+            f = tempfile.NamedTemporaryFile(suffix="."+IMAGE_FORMAT_FILEENDINGS[mimetype], prefix='plot',
+                                            dir=self.plotdir, mode='w+b', delete=False)
+            f.write(mimedata)
+            f.close()
+            relative_name= "%s/%s/%s" % (self.outputdir, os.path.basename(self.plotdir),
+                                         os.path.basename(f.name))
+            self.log.info("Written file of type %s to %s", mimetype, relative_name)
+            template = "![%s](%s)"
+            self.add_asis("\n")
+            self.add_asis(template % (title, relative_name))
+            self.add_asis("\n")
+        except Exception as e:
+            self.log.exception("Could not save a image")
+            raise KnitpyOutputException(str(e))
+
+
+    def add_markup_text(self, mimetype, mimedata):
+        # workaround for some pandoc weiredness:
+        # pandoc interpretes html with indention as test and formats it as text
+        # So remove all linefeeds/whitespace...
+        if mimetype == "text/html":
+            res= []
+            for line in mimedata.split("\n"):
+                res.append(line.strip())
+            mimedata = "".join(res)
+
+        to_format = "markdown"
+        # try to convert to the current format so that it can be included "asis"
+        if not MARKUP_FORMAT_CONVERTER[mimetype] in [to_format, self.export_format]:
+            if "<table" in mimedata:
+                raise KnitpyOutputException("pandoc can't convert html tables to markdown, "
+                                            "skipping...")
+            try:
+                self.log.debug("Converting markup text of type '%s'to '%s' via pandoc...",
+                               mimetype, to_format)
+                mimedata = pandoc(mimedata, to=to_format, format=MARKUP_FORMAT_CONVERTER[mimetype])
+            except RuntimeError as e:
+                # these are pypandoc errors
+                msg = "Could not convert mime data of type '%s' to output format '%s'."
+                self.log.debug(msg, mimetype, to_format)
+                raise KnitpyOutputException(str(e))
+            except Exception as e:
+                msg = "Could not convert mime data of type '%s' to output format '%s'."
+                self.log.exception(msg, mimetype, to_format)
+                raise KnitpyOutputException(str(e))
+
+        self.add_asis("\n")
+        self.add_asis(mimedata)
+        self.add_asis("\n")
+
+
+    def add_execution_error(self, text):
+        msg = "\n**ERROR**: %s\n\n"
+        self.add_text(msg % text)

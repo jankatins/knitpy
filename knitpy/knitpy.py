@@ -17,16 +17,15 @@ from __future__ import absolute_import, unicode_literals
 
 import codecs
 import os
-import logging
 import getpass
 import datetime
-import tempfile
 import yaml
 try:
     from queue import Empty  # Py 3
 except ImportError:
     from Queue import Empty  # Py 2
 
+from pypandoc import convert as pandoc
 
 from IPython.config.configurable import LoggingConfigurable
 
@@ -42,10 +41,10 @@ from IPython.kernel.multikernelmanager import MultiKernelManager
 from IPython.kernel.kernelspec import KernelSpecManager
 
 # Our own stuff
-from .documents import MarkdownOutputDocument
+from .documents import MarkdownOutputDocument, KnitpyOutputException
 from .engines import BaseKnitpyEngine, PythonKnitpyEngine
 from .utils import get_by_name, CRegExpMultiline, _plain_text, _code
-from pypandoc import convert as pandoc
+
 
 TBLOCK, TINLINE, TTEXT = range(3)
 
@@ -73,10 +72,6 @@ class Knitpy(LoggingConfigurable):
 
     kernel_debug = Bool(False, config=True,
         help="""Whether to output kernel messages to the (debug) log""")
-
-    def _kernel_debug_changed(self, name, old, new):
-        if new == True:
-            self.log.log_level = logging.DEBUG
 
     timeout = Integer(10, config=True, help="timeout for individual code executions")
 
@@ -268,7 +263,7 @@ class Knitpy(LoggingConfigurable):
                 # Either abort execution of the whole file or just retry with the next line?
                 # However this should be handled via a user message
                 self.log.info(reply)
-                context(reply)
+                context.output.add_execution_error("Code invalid:\n%s" % lines)
                 lines = ""
             else:
                 lines += "\n"
@@ -413,13 +408,10 @@ class Knitpy(LoggingConfigurable):
             if type == "execute_input":
                 if context.echo:
                     context.output.add_code(_code(msg[u'content']))
-            elif (type == "execute_result") or (type == "stream"):
-                if type == "execute_result":
-                    txt = _plain_text(msg["content"])
-                else:
-                    # {u'text': u'a\nb\nc\n', u'name': u'stdout'}
-                    # TODO: format stdout and stderr differently?
-                    txt = msg["content"].get("text","")
+            elif type == "stream":
+                # {u'text': u'a\nb\nc\n', u'name': u'stdout'}
+                # TODO: format stdout and stderr differently?
+                txt = msg["content"].get("text","")
                 if txt.strip() == "":
                     return
                 if context.results == 'markup':
@@ -427,59 +419,68 @@ class Knitpy(LoggingConfigurable):
                 elif context.results == 'asis':
                     context.output.add_asis(txt)
                 elif context.results == 'hide':
-                    pass
+                    return
                 else:
                     # TODO: implement a caching system... again...
                     self.log.warn("Can't handle results='hold' yet, falling back to 'markup'.")
                     context.output.add_output(txt)
-            elif type == "display_data":
-                # TODO: Put that into it's own place?
-                # Some should go to a output specific class (raw html, etc; ordering/preference of
-                # output formats)
-                from collections import OrderedDict
-                plot_endings = OrderedDict([("image/png","png"), ("image/svg","svg")])
+            elif (type == "execute_result") or (type == "display_data"):
+                if context.results == 'hide':
+                    return
+                if context.results == 'hold':
+                    self.log.warn("Can't handle results='hold' yet, falling back to 'markup'.")
+
+                # These can multiple types of the same message
                 data = msg[u"content"][u'data']
                 #self.log.debug(str(data))
 
-                handled_text = False
-                # always include text/plain, like in the notebook...
-                if u'text/plain' in data:
-                    txt = data.get(u"text/plain", "")
-                    if txt != "":
-                        context.output.add_text(txt)
-                        context.output.add_text("\n\n") # also inlude an empty line...
-                        handled_text = True
-
-                #print(type(data))
-                for mime_type in plot_endings.keys():
+                # handle plots
+                for mime_type in context.output.plot_mimetypes:
                     mime_data = data.get(mime_type, None)
                     if mime_data is None:
                         continue
-                    import base64
-                    mime_data = base64.decodestring(mime_data)
-                    # save as a file
-                    f = tempfile.NamedTemporaryFile(suffix="."+plot_endings[mime_type], prefix='plot',
-                                                    dir=context.output.plotdir, mode='w+b', delete=False)
-                    f.write(mime_data)
-                    f.close()
-                    relative_name= "%s/%s/%s" % (context.output.outputdir,
-                                                 os.path.basename(context.output.plotdir),
-                                                  os.path.basename(f.name))
-                    self.log.info("Written file of type %s to %s", mime_type, relative_name)
-                    # TODO: find out where to get the title...
-                    template = "![%s](%s)"
-                    context.output.add_text("\n")
-                    context.output.add_text(template % ("", relative_name))
-                    context.output.add_text("\n")
-                    # If we outputted some data, we are fine
+                    try:
+                        self.log.debug("Trying to include image...")
+                        context.output.add_image(mime_type, mime_data, title="")
+                    except KnitpyOutputException as e:
+                        self.log.info("Couldn't include image: %s", e)
+                        continue
                     return
+
+                # now try some marked up text formats
+                for mime_type in context.output.markup_mimetypes:
+                    mime_data = data.get(mime_type, None)
+                    if mime_data is None:
+                        continue
+                    try:
+                        self.log.debug("Trying to include markup text...")
+                        context.output.add_markup_text(mime_type, mime_data)
+                    except KnitpyOutputException as e:
+                        self.log.info("Couldn't include markup text: %s", e)
+                        continue
+                    return
+
+                # as a last resort, try plain text...
+                if u'text/plain' in data:
+                    txt = data.get(u"text/plain", "")
+                    if txt != "":
+                        context.output.add_output(txt)
+                        if txt[-1] != "\n":
+                            context.output.add_output("\n")
+                        return
 
                 # If we are here,  we couldn't handle any of the more specific data types
                 # and didn't find any output text
-                if not handled_text:
-                    excuse = "\n(Found data of type '{}', but couldn't handle it)\n"
-                    context.output.add_text(excuse.format(data.keys()))
-
+                excuse = "\n(Found data of type '{}', but couldn't handle it)\n"
+                context.output.add_output(excuse.format(data.keys()))
+            elif (type == "error"):
+                ename = msg["content"].get("ename","unknown exception")
+                evalue = msg["content"].get("evalue","unknown exception value")
+                #traceback = msg["content"].get("traceback","<not available>")
+                #there are ansii escape sequences in the traceback, which kills pandoc :-(
+                # Todo: find out how to disable escape sequences...
+                traceback = "(traceback unavailable due to included color sequences)"
+                context.output.add_execution_error("%s: %s\n%s" % (ename, evalue, traceback))
             else:
                 self.log.debug("Ignored msg of type %s" % type)
 

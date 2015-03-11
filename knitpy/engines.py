@@ -21,7 +21,7 @@ class BaseKnitpyEngine(LoggingConfigurable):
 class PythonKnitpyEngine(BaseKnitpyEngine):
 
     kernel_name = "python"
-    startup_lines = "%matplotlib inline\print('Loaded matplotlib')"
+    startup_lines = "%matplotlib inline"
 
     def wrap_code(self, text):
         begin = "\n```python\n"
