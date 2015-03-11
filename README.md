@@ -12,25 +12,30 @@ are (aem... can potentially be) supported.
 ## What works:
 * converting a simple pymd file via `knitpy document.pymd`. Both code blocks and 
   inline code are supported
-* output format `html` and `docx`
+* Inline plots
+* output format `html`, `pdf` and `docx`
+* code chunk arguments `eval`, `results` (apart form "hold", `include` and `echo`
 * debugging: ``--debug`, `--kernel-debug=True`
 
 ## What does not work (=everything else :-) ):
-* other output format than html and docx
 * YAML headers are currently ignored...
-* arguments for code blocks (`{python block_name, arg=val}` -> currently, everything 
-  after `python` will be ignored...
-* messages to stderr will not show up...
-* most advertised command-line options
+* some advertised command-line options
+* chunk names are ignored, no caching system
 * probably lots of other stuff...
 
 ## Todo
 * fix the above...
-* fix output format: what should be exported in knitpyapp, knitpy and how should the return 
-  from knitpy.render look like
 * refactor the parsing, so that it is line based
   - errors make more sense, because it knows the line ("block starting at line....")
-* make output format configurable
+* the final output has to configure the output plot types: 
+  - pdf can't use svg, prefers pdf
+  - html can handle svg but not pdf...
+* the final output has to configure the "includeable" markup docs
+  - html in html
+  - latex in html?
+  - ...
+* more arguments for code blocks
+* more output formats? -> make output format configurable
 * unittests...
   - should probably be done by a simple dir + textfiles ala test_input.pymd, test_output.md
   - codeblocks + inline
@@ -41,7 +46,6 @@ are (aem... can potentially be) supported.
 * Documentation
   - what works? what is not supported?
   - differences to rmarkdown / knitr?
-* put the mimetype handling into the output document (next to `add_code`, etc)
 * sane naming scheme for plots/... -> subdirs, naming-by-chunk-name
 * implement more kernel engines (R...) and make it possible to supply/change ones 
   (for installed kernels for python2/3 or coda environments)
