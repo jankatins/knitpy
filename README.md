@@ -3,6 +3,12 @@
 This is a port of knitr (http://yihui.name/knitr/) and rmarkdown
 (http://rmarkdown.rstudio.com/) to python.
 
+To start with, you can run the [example overview document](examples/knitpy_overview.pymd). To 
+convert to all defined output formats, run `knitpy --to="all"  -- examples\knitpy_overview.pymd`.
+This will produce a `html`, `docx` and `pdf` output (if you have `pdflatex` in path). You can 
+view a html version of this file: 
+[html rendered version](http://htmlpreview.github.io/?https://github.com/JanSchulz/knitpy/blob/master/examples/knitpy_overview.html)
+
 For a description of the code format see http://rmarkdown.rstudio.com/ and replace
 `{r <r style options>}` by `{python <python style options>}` and of course use python 
 code blocks...
@@ -25,17 +31,13 @@ are (aem... can potentially be) supported.
 * debugging with ``--debug`, `--kernel-debug=True`, `--output-debug=True`
 
 ## What does not work (=everything else :-) ):
-* YAML headers are currently mostly ignored
+* most YAML headers are currently ignored
 * some advertised command-line options are ignored
 * most code chunk arguments (apart from the ones above) are ignored
 * probably lots of other stuff...
 
 ## Todo
 * fix the above...
-* use chunk labels in file names
-  - if no chunk label, count up: "unnamed-chunk-1"
-  - count up the produced files: <chunkname>-1.png
-  - cleanup?
 * refactor the parsing, so that it is line based
   - errors make more sense, because it knows the line ("block starting at line....")
 * add some traits for the default pdflatex/pandoc executeable, so they don't have to be in path

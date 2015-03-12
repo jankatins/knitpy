@@ -1,0 +1,271 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <meta name="author" content="Jan Schulz" />
+  <title>knitpy: dynamic report generation with python</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; }
+code > span.dt { color: #902000; }
+code > span.dv { color: #40a070; }
+code > span.bn { color: #40a070; }
+code > span.fl { color: #40a070; }
+code > span.ch { color: #4070a0; }
+code > span.st { color: #4070a0; }
+code > span.co { color: #60a0b0; font-style: italic; }
+code > span.ot { color: #007020; }
+code > span.al { color: #ff0000; font-weight: bold; }
+code > span.fu { color: #06287e; }
+code > span.er { color: #ff0000; font-weight: bold; }
+  </style>
+</head>
+<body>
+<div id="header">
+<h1 class="title">knitpy: dynamic report generation with python</h1>
+<h2 class="author">Jan Schulz</h2>
+<h3 class="date">12.03.2015</h3>
+</div>
+<p>This is a port of knitr (<a href="http://yihui.name/knitr/" class="uri">http://yihui.name/knitr/</a>) and rmarkdown (<a href="http://rmarkdown.rstudio.com/" class="uri">http://rmarkdown.rstudio.com/</a>) to python.</p>
+<p>For a complete description of the code format see <a href="http://rmarkdown.rstudio.com/" class="uri">http://rmarkdown.rstudio.com/</a> and replace <code>{r...}</code> by <code>{python ...}</code> and of course use python code blocks…</p>
+<div id="examples" class="section level2">
+<h2>Examples</h2>
+<p>Here are some examples:</p>
+<pre class="none"><code>print(&quot;Execute some code chunk and show the result&quot;)</code></pre>
+<pre><code>Execute some code chunk and show the result</code></pre>
+<p>This is a port of knitr (<a href="http://yihui.name/knitr/" class="uri">http://yihui.name/knitr/</a>) and rmarkdown (<a href="http://rmarkdown.rstudio.com/" class="uri">http://rmarkdown.rstudio.com/</a>) to python.</p>
+<p>For a complete description of the code format see <a href="http://rmarkdown.rstudio.com/" class="uri">http://rmarkdown.rstudio.com/</a> and replace <code>{r...}</code> by <code>{python ...}</code> and of course use python code blocks…</p>
+</div>
+<div id="examples-1" class="section level2">
+<h2>Examples</h2>
+<p>Here are some examples:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="dt">print</span>(<span class="st">&quot;Execute some code chunk and show the result&quot;</span>)</code></pre>
+<pre><code>Execute some code chunk and show the result</code></pre>
+<div id="code-chunk-arguments" class="section level3">
+<h3>Code chunk arguments</h3>
+<p>You can use different arguments in the codechunk declaration. Using <code>echo=False</code> will not show the code but only the result.</p>
+<pre><code>Only the output will be visible as `echo=False`</code></pre>
+<p>The next paragraphs explores the code chunk argument <code>results</code>.</p>
+<p>If ‘hide’, knitpy will not display the code’s results in the final document. If ‘hold’, knitpy will delay displaying all output pieces until the end of the chunk. If ‘asis’, knitpy will pass through results without reformatting them (useful if results return raw HTML, etc.)</p>
+<p><code>results='hold'</code> is not yet implemented.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="dt">print</span>(<span class="st">&quot;Only the input is displayed, not the output&quot;</span>)</code></pre>
+<pre><code>This is formatted as markdown:
+**This text** will be bold...</code></pre>
+<p><strong>This text</strong> will be bold…</p>
+<p>Using <code>eval=False</code>, one can hide a code chunk completely: it won’t be executed and it won’t be shown between this text …</p>
+<p>… and this text here!</p>
+<p>You can also not show codeblocks at all, but they will be run (not included codeblock sets <code>have_run = True</code>):</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">if</span> have_run == <span class="ot">True</span>:
+    <span class="dt">print</span>(<span class="st">&quot;'have_run==True': ran the codeblock before this one.&quot;</span>)</code></pre>
+<pre><code>'have_run==True': ran the codeblock before this one.</code></pre>
+</div>
+<div id="inline-code" class="section level3">
+<h3>Inline code</h3>
+<p>You can also include code inline: “m=2” (expected: “m=2”)</p>
+</div>
+<div id="ipython-jupyter-display-framework" class="section level3">
+<h3>IPython / Jupyter display framework</h3>
+<p>The display framework is also supported.</p>
+<p>Plots will be included as images and included in the document. The filename of the plot is derived from the chunk label (“sinus” in this case). The code is not shown in this case (<code>echo=False</code>).</p>
+<p><img src="data:image/png;base64,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" /></p>
+<p>If a html or similar thing is displayed via the IPython display framework, it will be included ‘as is’, meaning that apart from <code>text/plain</code>-only output, everything else will be included without marking it up as output.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="co"># As this all produces no output, it should go into the same input section...</span>
+<span class="ch">from</span> IPython.core.display <span class="ch">import</span> display, HTML
+display(HTML(<span class="st">&quot;&lt;strong&gt;strong text&lt;/strong&gt;&quot;</span>))</code></pre>
+<p><strong>strong text</strong></p>
+<p>It even handles pandas.DataFrames:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> pandas <span class="ch">as</span> pd
+pd.set_option(<span class="st">&quot;display.width&quot;</span>, <span class="dv">200</span>) 
+strlong = <span class="st">&quot;&quot;&quot;This is very long text which should be displayed but not destroy the formats... Therefore we add a lot of text here and look how long the table row can become...&quot;&quot;&quot;</span>
+df = pd.DataFrame({<span class="st">&quot;a&quot;</span>:[strlong,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>],<span class="st">&quot;b&quot;</span>:[<span class="st">&quot;a&quot;</span>,<span class="st">&quot;b&quot;</span>,<span class="st">&quot;c&quot;</span>,strlong,<span class="st">&quot;e&quot;</span>]})
+df</code></pre>
+<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+<thead>
+<tr style="text-align: right;">
+<th>
+</th>
+<th>
+a
+</th>
+<th>
+b
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th>
+0
+</th>
+<td>
+This is very long text which should be display…
+</td>
+<td>
+a
+</td>
+</tr>
+<tr>
+<th>
+1
+</th>
+<td>
+2
+</td>
+<td>
+b
+</td>
+</tr>
+<tr>
+<th>
+2
+</th>
+<td>
+3
+</td>
+<td>
+c
+</td>
+</tr>
+<tr>
+<th>
+3
+</th>
+<td>
+4
+</td>
+<td>
+This is very long text which should be display…
+</td>
+</tr>
+<tr>
+<th>
+4
+</th>
+<td>
+5
+</td>
+<td>
+e
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code>pandas.DataFrame</code> can be represented as <code>text/plain</code> or <code>text/html</code>. Unfortunately, pandoc cannot convert <code>html</code> to <code>docx</code>. If this document is converted into <code>docx</code>, the above will be displayed as <code>text/plain</code>, which looks like the following:</p>
+<pre class="sourceCode python"><code class="sourceCode python">pd.set_option(<span class="st">&quot;display.notebook_repr_html&quot;</span>, <span class="ot">False</span>) 
+df</code></pre>
+<pre><code>                                                   a                                                  b
+0  This is very long text which should be display...                                                  a
+1                                                  2                                                  b
+2                                                  3                                                  c
+3                                                  4  This is very long text which should be display...
+4                                                  5                                                  e</code></pre>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="co"># set back the display </span>
+pd.set_option(<span class="st">&quot;display.notebook_repr_html&quot;</span>, <span class="ot">True</span>) </code></pre>
+<p>It’s possible to get around this limitation by using the <a href="https://bitbucket.org/astanin/python-tabulate">tabulate</a> package together with <code>results=&quot;asis&quot;</code>. Unfortunately, this still breaks in latex/pdf documents :-/</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">from</span> tabulate <span class="ch">import</span> tabulate
+<span class="ch">from</span> IPython.core.display <span class="ch">import</span> display, Markdown
+<span class="co"># either print and use `results=&quot;asis&quot;`</span>
+<span class="dt">print</span>(tabulate(df, <span class="dt">list</span>(df.columns), tablefmt=<span class="st">&quot;simple&quot;</span>))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">a</th>
+<th align="left">b</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">0</td>
+<td align="left">This is very long text which should be displayed but not destroy the formats… Therefore we add a lot of text here and look how long the table row can become…</td>
+<td align="left">a</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">2</td>
+<td align="left">b</td>
+</tr>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">3</td>
+<td align="left">c</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">4</td>
+<td align="left">This is very long text which should be displayed but not destroy the formats… Therefore we add a lot of text here and look how long the table row can become…</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">5</td>
+<td align="left">e</td>
+</tr>
+</tbody>
+</table>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="co"># or use the IPython display framework to publish markdown</span>
+Markdown(tabulate(df, <span class="dt">list</span>(df.columns), tablefmt=<span class="st">&quot;simple&quot;</span>))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="left">a</th>
+<th align="left">b</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">0</td>
+<td align="left">This is very long text which should be displayed but not destroy the formats… Therefore we add a lot of text here and look how long the table row can become…</td>
+<td align="left">a</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">2</td>
+<td align="left">b</td>
+</tr>
+<tr class="odd">
+<td align="left">2</td>
+<td align="left">3</td>
+<td align="left">c</td>
+</tr>
+<tr class="even">
+<td align="left">3</td>
+<td align="left">4</td>
+<td align="left">This is very long text which should be displayed but not destroy the formats… Therefore we add a lot of text here and look how long the table row can become…</td>
+</tr>
+<tr class="odd">
+<td align="left">4</td>
+<td align="left">5</td>
+<td align="left">e</td>
+</tr>
+</tbody>
+</table>
+<p>Make very sure that the <code>DataFrame</code> is not too long…</p>
+</div>
+<div id="error-handling" class="section level3">
+<h3>Error handling</h3>
+<p>Errors in code are shown with a bold error text:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> sys
+<span class="dt">print</span>(sys.not_available)</code></pre>
+<p><strong>ERROR</strong>: AttributeError: ‘module’ object has no attribute ‘not_available’</p>
+<pre><code>AttributeError                            Traceback (most recent call last)
+&lt;ipython-input-31-a5971246c0f7&gt; in &lt;module&gt;()
+----&gt; 1 print(sys.not_available)
+
+AttributeError: 'module' object has no attribute 'not_available'</code></pre>
+<p><strong>ERROR</strong>: Code invalid</p>
+<pre><code>for x in []:
+print(&quot;No indention...&quot;)</code></pre>
+</div>
+</div>
+</body>
+</html>
