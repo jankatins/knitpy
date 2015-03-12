@@ -430,7 +430,16 @@ class Knitpy(LoggingConfigurable):
                 if context.results == 'hold':
                     self.log.warn("Can't handle results='hold' yet, falling back to 'markup'.")
 
-                # These can multiple types of the same message
+                # Here we handle the output from the IPython display framework.
+                # 1. If a object has a _display_ipython(), that will be called. This method should
+                #    publish (one) display_data message and return -> the content ends up in
+                #    "display_data" msg and the "executive_result" has no data
+                # 2. else try different IPython.core.formatters for the object, which basically
+                #    call the right _repr_<whatever>_ method to get a formated string in that
+                #    mimetype. This is added as alternatives under content.data of the
+                #    "executive_result".
+
+                # data has/can have multiple types of the same message
                 data = msg[u"content"][u'data']
                 #self.log.debug(str(data))
 
@@ -464,9 +473,15 @@ class Knitpy(LoggingConfigurable):
                 if u'text/plain' in data:
                     txt = data.get(u"text/plain", "")
                     if txt != "":
-                        context.output.add_output(txt)
-                        if txt[-1] != "\n":
-                            context.output.add_output("\n")
+                        if context.results == 'markup':
+                            context.output.add_output(txt)
+                            if txt[-1] != "\n":
+                                context.output.add_output("\n")
+                        elif context.results == 'asis':
+                            context.output.add_asis(txt)
+                            if txt[-1] != "\n":
+                                context.output.add_asis("\n")
+
                         return
 
                 # If we are here,  we couldn't handle any of the more specific data types
@@ -476,9 +491,9 @@ class Knitpy(LoggingConfigurable):
             elif (type == "error"):
                 ename = msg["content"].get("ename","unknown exception")
                 evalue = msg["content"].get("evalue","unknown exception value")
-                #traceback = msg["content"].get("traceback","<not available>")
+                traceback = msg["content"].get("traceback","<not available>")
+                self.log.info(traceback)
                 #there are ansii escape sequences in the traceback, which kills pandoc :-(
-                # Todo: find out how to disable escape sequences...
                 traceback = "(traceback unavailable due to included color sequences)"
                 context.output.add_execution_error("%s: %s\n%s" % (ename, evalue, traceback))
             else:

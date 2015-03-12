@@ -135,6 +135,9 @@ class MarkdownOutputDocument(LoggingConfigurable):
 
         if content_type != self._last_content:
             self.flush()
+            # make sure there is a newline after befor ethe next differently formatted part,
+            # so that pandoc doesn't get confused...
+            self._output.append("\n")
         if content_type == CODE:
             cache = self._cache_code
             self._last_content = CODE
@@ -196,6 +199,10 @@ class MarkdownOutputDocument(LoggingConfigurable):
             for line in mimedata.split("\n"):
                 res.append(line.strip())
             mimedata = "".join(res)
+            # pandas adds multiple spaces if one element in a column is long, but teh rest is
+            # short. Remove these spaces, as pandoc doesn't like it...
+            import re
+            mimedata = re.sub(' +',' ', mimedata)
 
         to_format = "markdown"
         # try to convert to the current format so that it can be included "asis"
