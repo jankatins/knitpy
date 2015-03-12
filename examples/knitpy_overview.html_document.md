@@ -1,3 +1,30 @@
+---
+title: "knitpy: dynamic report generation with python"
+author: "Jan Schulz"
+date: "12.03.2015"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    keep_md: yes
+---
+
+This is a port of knitr (http://yihui.name/knitr/) and rmarkdown 
+(http://rmarkdown.rstudio.com/) to python.
+
+For a complete description of the code format see http://rmarkdown.rstudio.com/ and replace
+`{r...}` by `{python ...}` and of course use python code blocks...
+
+## Examples
+
+Here are some examples:
+
+``` None
+print("Execute some code chunk and show the result")
+```
+```
+Execute some code chunk and show the result
+```
 
 ---
 title: "knitpy: dynamic report generation with python"
@@ -97,7 +124,7 @@ shown in this case (`echo=False`).
 
 
 
-![](knitpy_overview_files/figure-html/unnamed-chunk-10-0.png)
+![](knitpy_overview_files/figure-html/sinus-0.png)
 
 
 If a html or similar thing is displayed via the IPython display framework, it will be 
@@ -122,14 +149,14 @@ It even handles pandas.DataFrames:
 ``` python
 import pandas as pd
 pd.set_option("display.width", 200) 
-strlong = """This is very long text which should be displayed but not destroy the formats... Therefore we add a lot of text here and look how long the table row can become..."""
-df = pd.DataFrame({"a":[strlong,2,3,4,5],"b":["a","b","c",strlong,"e"]})
+s = """This is longer text"""
+df = pd.DataFrame({"a":[1,2,3,4,5],"b":[s,"b","c",s,"e"]})
 df
 ```
 
 
 
-<div style="max-height:1000px;max-width:1500px;overflow:auto;"><table border="1" class="dataframe"><thead><tr style="text-align: right;"><th></th><th>a</th><th>b</th></tr></thead><tbody><tr><th>0</th><td> This is very long text which should be display...</td><td> a</td></tr><tr><th>1</th><td> 2</td><td> b</td></tr><tr><th>2</th><td> 3</td><td> c</td></tr><tr><th>3</th><td> 4</td><td> This is very long text which should be display...</td></tr><tr><th>4</th><td> 5</td><td> e</td></tr></tbody></table></div>
+<div style="max-height:1000px;max-width:1500px;overflow:auto;"><table border="1" class="dataframe"><thead><tr style="text-align: right;"><th></th><th>a</th><th>b</th></tr></thead><tbody><tr><th>0</th><td> 1</td><td> This is longer text</td></tr><tr><th>1</th><td> 2</td><td> b</td></tr><tr><th>2</th><td> 3</td><td> c</td></tr><tr><th>3</th><td> 4</td><td> This is longer text</td></tr><tr><th>4</th><td> 5</td><td> e</td></tr></tbody></table></div>
 
 
 `pandas.DataFrame` can be represented as `text/plain` or `text/html`. Unfortunately, pandoc cannot convert `html` to `docx`. If this document is converted into `docx`, the above will be displayed as `text/plain`, which looks like the following:
@@ -141,12 +168,12 @@ df
 ```
 
 ```
-                                                   a                                                  b
-0  This is very long text which should be display...                                                  a
-1                                                  2                                                  b
-2                                                  3                                                  c
-3                                                  4  This is very long text which should be display...
-4                                                  5                                                  e
+   a                    b
+0  1  This is longer text
+1  2                    b
+2  3                    c
+3  4  This is longer text
+4  5                    e
 ```
 
 ``` python
@@ -165,13 +192,13 @@ from IPython.core.display import display, Markdown
 print(tabulate(df, list(df.columns), tablefmt="simple"))
 ```
 
-    a                                                                                                                                                                  b
---  -----------------------------------------------------------------------------------------------------------------------------------------------------------------  -----------------------------------------------------------------------------------------------------------------------------------------------------------------
- 0  This is very long text which should be displayed but not destroy the formats... Therefore we add a lot of text here and look how long the table row can become...  a
- 1  2                                                                                                                                                                  b
- 2  3                                                                                                                                                                  c
- 3  4                                                                                                                                                                  This is very long text which should be displayed but not destroy the formats... Therefore we add a lot of text here and look how long the table row can become...
- 4  5                                                                                                                                                                  e
+      a  b
+--  ---  -------------------
+ 0    1  This is longer text
+ 1    2  b
+ 2    3  c
+ 3    4  This is longer text
+ 4    5  e
 
 ``` python
 # or use the IPython display framework to publish markdown
@@ -180,13 +207,13 @@ Markdown(tabulate(df, list(df.columns), tablefmt="simple"))
 
 
 
-    a                                                                                                                                                                  b
---  -----------------------------------------------------------------------------------------------------------------------------------------------------------------  -----------------------------------------------------------------------------------------------------------------------------------------------------------------
- 0  This is very long text which should be displayed but not destroy the formats... Therefore we add a lot of text here and look how long the table row can become...  a
- 1  2                                                                                                                                                                  b
- 2  3                                                                                                                                                                  c
- 3  4                                                                                                                                                                  This is very long text which should be displayed but not destroy the formats... Therefore we add a lot of text here and look how long the table row can become...
- 4  5                                                                                                                                                                  e
+      a  b
+--  ---  -------------------
+ 0    1  This is longer text
+ 1    2  b
+ 2    3  c
+ 3    4  This is longer text
+ 4    5  e
 
 
 Make very sure that the `DataFrame` is not too long...

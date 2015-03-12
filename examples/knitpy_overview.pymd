@@ -106,8 +106,8 @@ It even handles pandas.DataFrames:
 ```{python}
 import pandas as pd
 pd.set_option("display.width", 200) 
-strlong = """This is very long text which should be displayed but not destroy the formats... Therefore we add a lot of text here and look how long the table row can become..."""
-df = pd.DataFrame({"a":[strlong,2,3,4,5],"b":["a","b","c",strlong,"e"]})
+s = """This is longer text"""
+df = pd.DataFrame({"a":[1,2,3,4,5],"b":[s,"b","c",s,"e"]})
 df
 ```
 
