@@ -43,7 +43,7 @@ from IPython.kernel.kernelspec import KernelSpecManager
 # Our own stuff
 from .documents import MarkdownOutputDocument, KnitpyOutputException
 from .engines import BaseKnitpyEngine, PythonKnitpyEngine
-from .utils import get_by_name, CRegExpMultiline, _plain_text, _code
+from .utils import get_by_name, CRegExpMultiline, _plain_text, _code, is_string
 
 
 TBLOCK, TINLINE, TTEXT = range(3)
@@ -262,8 +262,8 @@ class Knitpy(LoggingConfigurable):
                 # TODO: not sure how this should be handled
                 # Either abort execution of the whole file or just retry with the next line?
                 # However this should be handled via a user message
-                self.log.info(reply)
-                context.output.add_execution_error("Code invalid:\n%s" % lines)
+                self.log.info("Code invalid:\n%s",  lines)
+                context.output.add_execution_error("Code invalid",  lines)
                 lines = ""
             else:
                 lines += "\n"
@@ -491,11 +491,16 @@ class Knitpy(LoggingConfigurable):
             elif (type == "error"):
                 ename = msg["content"].get("ename","unknown exception")
                 evalue = msg["content"].get("evalue","unknown exception value")
-                traceback = msg["content"].get("traceback","<not available>")
-                self.log.info(traceback)
-                #there are ansii escape sequences in the traceback, which kills pandoc :-(
-                traceback = "(traceback unavailable due to included color sequences)"
-                context.output.add_execution_error("%s: %s\n%s" % (ename, evalue, traceback))
+                tb = msg["content"].get("traceback","<not available>")
+                if not is_string(tb):
+                    # remove the first line...
+                    tb = "\n".join(tb[1:])
+                self.log.info(tb)
+                #there are ansi escape sequences in the traceback, which kills pandoc :-(
+                if u"\x1b[1;32m" in tb:
+                    tb = "!! traceback unavailable due to included color sequences;\n" \
+                         "!! execute `%colors NoColor` once before this line to remove them!"
+                context.output.add_execution_error("%s: %s" % (ename, evalue), tb)
             else:
                 self.log.debug("Ignored msg of type %s" % type)
 

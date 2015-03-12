@@ -21,11 +21,9 @@ class BaseKnitpyEngine(LoggingConfigurable):
 class PythonKnitpyEngine(BaseKnitpyEngine):
 
     kernel_name = "python"
-    startup_lines = "%matplotlib inline"
-
-    def wrap_code(self, text):
-        begin = "\n```python\n"
-        end = "\n```\n"
-        return begin + text + end
+    startup_lines = """%matplotlib inline
+# Bad things happen if tracebacks have ansi escape sequences
+%colors NoColor
+"""
 
 

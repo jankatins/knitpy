@@ -134,7 +134,7 @@ class KnitpyApp(BaseIPythonApplication):
 
     # Other configurable variables
     # '--to' ends up here
-    export_format = CaselessStrEnum(VALID_OUTPUT_FORMATS,
+    export_format = CaselessStrEnum(VALID_OUTPUT_FORMATS+["all"],
         default_value=DEFAULT_OUTPUT_FORMAT,
         config=True,
         help="""The export format to be used."""

@@ -2,9 +2,9 @@ from __future__ import absolute_import, unicode_literals
 
 import os
 import tempfile
+import re
 from collections import OrderedDict
 from pypandoc import convert as pandoc
-
 
 # Basic things from IPython
 from IPython.config.configurable import LoggingConfigurable
@@ -56,11 +56,11 @@ class MarkdownOutputDocument(LoggingConfigurable):
 
     plot_mimetypes = List(default_value=IMAGE_FORMAT_FILEENDINGS.keys(), allow_none=False,
                           config=True,
-                          help="Mimetimpes, which should be handled as plots.")
+                          help="Mimetypes, which should be handled as plots.")
 
     markup_mimetypes = List(default_value=MARKUP_FORMAT_CONVERTER.keys(), allow_none=False,
                           config=True,
-                          help="Mimetimpes, which should be handled as markeduped text")
+                          help="Mimetypes, which should be handled as markeduped text")
 
     def __init__(self, fileoutputs, export_format="html", **kwargs):
         super(MarkdownOutputDocument,self).__init__(**kwargs)
@@ -192,16 +192,16 @@ class MarkdownOutputDocument(LoggingConfigurable):
 
     def add_markup_text(self, mimetype, mimedata):
         # workaround for some pandoc weiredness:
-        # pandoc interpretes html with indention as test and formats it as text
+        # pandoc interpretes html with indention as code and formats it with pre
         # So remove all linefeeds/whitespace...
         if mimetype == "text/html":
             res= []
             for line in mimedata.split("\n"):
                 res.append(line.strip())
             mimedata = "".join(res)
-            # pandas adds multiple spaces if one element in a column is long, but teh rest is
-            # short. Remove these spaces, as pandoc doesn't like it...
-            import re
+            # pandas adds multiple spaces if one element in a column is long, but the rest is
+            # short. Remove these spaces, as pandoc doesn't like them...
+
             mimedata = re.sub(' +',' ', mimedata)
 
         to_format = "markdown"
@@ -229,6 +229,8 @@ class MarkdownOutputDocument(LoggingConfigurable):
         self.add_asis("\n")
 
 
-    def add_execution_error(self, text):
-        msg = "\n**ERROR**: %s\n\n"
-        self.add_text(msg % text)
+    def add_execution_error(self, error, details=""):
+        msg = "\n**ERROR**: %s\n\n" % error
+        if details:
+            msg += "```\n%s\n```\n" % details
+        self.add_asis(msg)
