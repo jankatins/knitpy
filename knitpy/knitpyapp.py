@@ -31,6 +31,7 @@ from IPython.utils.traitlets import (
 
 
 from .documents import MarkdownOutputDocument
+from .utils import get_by_name
 from .knitpy import DEFAULT_OUTPUT_FORMAT, VALID_OUTPUT_FORMATS, Knitpy, ParseException
 
 
@@ -139,6 +140,16 @@ class KnitpyApp(BaseIPythonApplication):
         config=True,
         help="""The export format to be used."""
     )
+
+    # This is a workaround for https://github.com/ipython/ipython/issues/8025
+    # a value of "all" is converted to the function `all` during commandline parsing, which
+    # raises if that is set as `export_format`. So on config change, first change it back and
+    # then call the original _config_changed(), which puts the config values to the traits
+    def _config_changed(self, name, old, new):
+        if get_by_name(new, "KnitpyApp.export_format", na=None) is all:
+            new.KnitpyApp.export_format = "all"
+        super(KnitpyApp, self)._config_changed(name, old, new)
+
 
     documents = List([], config=True, help="""List of documents to convert.
                  Wildcards are supported.

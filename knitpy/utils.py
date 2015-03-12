@@ -2,12 +2,12 @@ __author__ = 'jschulz'
 
 from IPython.utils.py3compat import string_types
 
-def get_by_name(dict_like, name):
+def get_by_name(dict_like, name, na="<n/a"):
     res = dict_like
     for part in name.split("."):
         res = res.get(part, None)
         if res is None:
-            return "<n/a>"
+            return na
     return res
 
 
