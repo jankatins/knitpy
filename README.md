@@ -6,8 +6,9 @@ This is a port of knitr (http://yihui.name/knitr/) and rmarkdown
 To start with, you can run the [example overview document](examples/knitpy_overview.pymd). To 
 convert to all defined output formats, run `knitpy --to="all"  -- examples\knitpy_overview.pymd`.
 This will produce a `html`, `docx` and `pdf` output (if you have `pdflatex` in path). You can 
-view a html version of this file: 
-[html rendered version](http://htmlpreview.github.io/?https://github.com/JanSchulz/knitpy/blob/master/examples/knitpy_overview.html)
+view a [markdown rendered](examples/knitpy_overview.html_document.md) and a 
+[html rendered](http://htmlpreview.github.io/?https://github.com/JanSchulz/knitpy/blob/master/examples/knitpy_overview.html)
+version of this file. It's not yet as pretty as the knitr version...
 
 For a description of the code format see http://rmarkdown.rstudio.com/ and replace
 `{r <r style options>}` by `{python <python style options>}` and of course use python 
