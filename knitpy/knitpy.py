@@ -608,7 +608,7 @@ class Knitpy(LoggingConfigurable):
 
         for fmt in output_formats:
             self._ensure_valid_output(fmt)
-            self.log.info("Converting document %s to %s", filename, self.default_export_format)
+            self.log.info("Converting document %s to %s", filename, fmt)
             # TODO: build a proper way to specify final output...
             if fmt == "word_document":
                 fmt = "docx_document"
