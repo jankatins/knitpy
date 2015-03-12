@@ -239,7 +239,7 @@ class Knitpy(LoggingConfigurable):
         if "include" in args:
             context.include = args.pop("include")
 
-        if "label" in args:
+        if "chunk_label" in args:
             context.chunk_label = args.pop("chunk_label")
         else:
             context.chunk_label = u"unnamed-chunk-%s" % context.chunk_number
@@ -617,9 +617,10 @@ class Knitpy(LoggingConfigurable):
 
             # get the temporary md file
             self.convert(parsed, md_temp)
-
-            if get_by_name(metadata, fmt+".keep_md",):
-                mdfilename = basename+".md"
+            keepmd_meta = get_by_name(metadata, "output."+fmt+".keep_md", na=False)
+            if keepmd_meta or self.keep_md:
+                mdfilename = basename+"."+fmt+".md"
+                self.log.info("Saving the temporary markdown as '%s'." % mdfilename)
                 # TODO: remove the first yaml metadata block and
                 # put "#<title>\n<author>\n<date>" before the rest
                 with codecs.open(mdfilename, 'w+b','UTF-8') as f:

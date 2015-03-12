@@ -220,7 +220,7 @@ class MarkdownOutputDocument(LoggingConfigurable):
                 raise KnitpyOutputException("pandoc can't convert html tables to markdown, "
                                             "skipping...")
             try:
-                self.log.debug("Converting markup text of type '%s'to '%s' via pandoc...",
+                self.log.debug("Converting markup of type '%s' to '%s' via pandoc...",
                                mimetype, to_format)
                 mimedata = pandoc(mimedata, to=to_format, format=MARKUP_FORMAT_CONVERTER[mimetype])
             except RuntimeError as e:
