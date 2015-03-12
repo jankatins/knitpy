@@ -8,7 +8,7 @@ from pypandoc import convert as pandoc
 
 # Basic things from IPython
 from IPython.config.configurable import LoggingConfigurable
-from IPython.utils.traitlets import Bool, Unicode, CaselessStrEnum, List
+from IPython.utils.traitlets import Bool, Unicode, CaselessStrEnum, List, Instance
 
 from .utils import is_iterable, is_string
 
@@ -61,6 +61,8 @@ class MarkdownOutputDocument(LoggingConfigurable):
     markup_mimetypes = List(default_value=MARKUP_FORMAT_CONVERTER.keys(), allow_none=False,
                           config=True,
                           help="Mimetypes, which should be handled as markeduped text")
+
+    context = Instance(klass="knitpy.knitpy.ExecutionContext", config=False, allow_none=True)
 
     def __init__(self, fileoutputs, export_format="html", **kwargs):
         super(MarkdownOutputDocument,self).__init__(**kwargs)
@@ -174,8 +176,16 @@ class MarkdownOutputDocument(LoggingConfigurable):
             import base64
             mimedata = base64.decodestring(mimedata)
             # save as a file
-            f = tempfile.NamedTemporaryFile(suffix="."+IMAGE_FORMAT_FILEENDINGS[mimetype], prefix='plot',
-                                            dir=self.plotdir, mode='w+b', delete=False)
+            if not self.context is None:
+                filename = u"%s-%s.%s" % (self.context.chunk_label,
+                                          self.context.chunk_plot_number,
+                                          IMAGE_FORMAT_FILEENDINGS[mimetype])
+                f = open(os.path.join(self.plotdir, filename), mode='w+b')
+            else:
+                self.log.info("Context no specified: using random filename for image")
+                f = tempfile.NamedTemporaryFile(suffix="."+IMAGE_FORMAT_FILEENDINGS[mimetype],
+                                                prefix='plot', dir=self.plotdir, mode='w+b',
+                                                delete=False)
             f.write(mimedata)
             f.close()
             relative_name= "%s/%s/%s" % (self.outputdir, os.path.basename(self.plotdir),
@@ -191,8 +201,8 @@ class MarkdownOutputDocument(LoggingConfigurable):
 
 
     def add_markup_text(self, mimetype, mimedata):
-        # workaround for some pandoc weiredness:
-        # pandoc interpretes html with indention as code and formats it with pre
+        # workaround for some pandoc weirdness:
+        # pandoc interprets html with indention as code and formats it with pre
         # So remove all linefeeds/whitespace...
         if mimetype == "text/html":
             res= []
@@ -201,7 +211,6 @@ class MarkdownOutputDocument(LoggingConfigurable):
             mimedata = "".join(res)
             # pandas adds multiple spaces if one element in a column is long, but the rest is
             # short. Remove these spaces, as pandoc doesn't like them...
-
             mimedata = re.sub(' +',' ', mimedata)
 
         to_format = "markdown"

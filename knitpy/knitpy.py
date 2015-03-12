@@ -30,7 +30,7 @@ from pypandoc import convert as pandoc
 from IPython.config.configurable import LoggingConfigurable
 
 from IPython.utils.traitlets import (
-    Bool, Integer, CaselessStrEnum, CRegExp, Instance
+    Bool, Integer, CaselessStrEnum, CRegExp, Instance, Unicode
 )
 from IPython.utils import py3compat
 from IPython.utils.py3compat import unicode_type
@@ -83,7 +83,7 @@ class Knitpy(LoggingConfigurable):
     inline_code = CRegExpMultiline(r'`(?P<engine>[a-z]+) +([^`]+)\s*`', config=True,
                                    help="inline code regex (must include a named group 'engine')")
     comment_line = CRegExp(r'^\s*#',config=True, help="comment line regex")
-    yaml_separator = CRegExpMultiline(r"^---\\s*$", config=True,
+    yaml_separator = CRegExpMultiline(r"^---\s*$", config=True,
                                       help="separator for the yaml metadata")
 
 
@@ -124,16 +124,15 @@ class Knitpy(LoggingConfigurable):
         pos = 0
         start = self.yaml_separator.search(doc, pos)
         if not start is None:
-            end = self.yaml_separator.search(doc, start.end)
+            end = self.yaml_separator.search(doc, start.end())
             if end is None:
                 raise ParseException("Found no metadata end separator.")
             try:
-                res = yaml.load(doc[start.end:end.start])
+                res = yaml.load(doc[start.end():end.start()])
                 self.log.debug("Metadata: %s", res)
                 metadata.update(res)
             except Exception as e:
                 raise ParseException("Malformed metadata: %s" % str(e))
-
 
         parsed_doc = self._parse_blocks(doc)
         return parsed_doc, metadata
@@ -179,11 +178,15 @@ class Knitpy(LoggingConfigurable):
 
     def convert(self, parsed, output):
 
+        context = ExecutionContext(output=output)
+
         for entry in parsed:
             if entry[0] == TBLOCK:
-                self._process_code(entry[1], mode="block", output=output)
+                context.mode="block"
+                self._process_code(entry[1], context=context)
             elif entry[0] == TINLINE:
-                self._process_code(entry[1], mode="inline", output=output)
+                context.mode="inline"
+                self._process_code(entry[1], context=context)
             elif entry[0] == TTEXT:
                 output.add_text(entry[1])
             else:
@@ -195,7 +198,9 @@ class Knitpy(LoggingConfigurable):
         self._kernels = {}
         return output
 
-    def _process_code(self, input, mode, output):
+    def _process_code(self, input, context):
+
+        context.execution_started()
 
         # setup the execution context
         code = input[0]
@@ -222,8 +227,7 @@ class Knitpy(LoggingConfigurable):
         except:
             raise ParseException("Unknown codeblock type: %s" % engine_name)
         assert not engine is None, "Engine is None"
-        context = ExecutionContext(mode=mode, engine=engine, output=output)
-
+        context.engine = engine
 
         # configure the context
         if "echo" in args:
@@ -235,9 +239,13 @@ class Knitpy(LoggingConfigurable):
         if "include" in args:
             context.include = args.pop("include")
 
+        if "label" in args:
+            context.chunk_label = args.pop("chunk_label")
+        else:
+            context.chunk_label = u"unnamed-chunk-%s" % context.chunk_number
+
         if args:
             self.log.debug("Found unhandled args: %s", args)
-
 
         lines = ''
         for line in code.split('\n'):
@@ -273,6 +281,9 @@ class Knitpy(LoggingConfigurable):
         if lines.strip() != "":
             self._run_lines(lines, context)
 
+        context.execution_finished()
+
+
     def _parse_args(self, raw_args):
         # Todo: knitr interprets all values, so code references are possible
         # This also means that we have to do args parsing at interpretation time, so that
@@ -295,10 +306,11 @@ class Knitpy(LoggingConfigurable):
             arg = arg.strip()
             if not "=" in arg:
                 if not first:
-                    raise ParseException("Malformed args for codechunk: '%s' in '%s'" % (arg, raw_args))
-                args["chunkname"] = arg
-                first = False
+                    raise ParseException("Malformed options for code chunk: '%s' in '%s'" % (
+                        arg,raw_args))
+                args["chunk_label"] = arg
                 continue
+            first = False
             label, value = arg.split("=")
             v = value.strip()
             # convert to real types.
@@ -314,7 +326,7 @@ class Knitpy(LoggingConfigurable):
                 try:
                     v = int(v)
                 except:
-                    self.log.error("Could not decode arg value: '%s=%s'. Discarded...", label, v)
+                    self.log.error("Could not decode option value: '%s=%s'. Discarded...", label, v)
                     continue
 
             args[label.strip()] = v
@@ -576,15 +588,17 @@ class Knitpy(LoggingConfigurable):
         # get the output formats
         # order: kwarg overwrites default overwrites document
         output_formats = [self.default_export_format+"_document"]
+        print(output)
         if output is None:
-            pass
+            self.log.debug("Converting to default output format [%s]!" % self.default_export_format)
         elif output == "all":
             outputs = metadata.get("output", None)
             # if nothing is specified, we keep the default
             if outputs is None:
-                pass
+                self.log.debug("Did not find any specified output formats: using only default!")
             else:
                 output_formats = [fmt for fmt in outputs.iterkeys()]
+                self.log.debug("Converting to all specified output formats: %s" % output_formats)
         else:
             # TODO: rmarkdown lets you specify 'html_document(output metadata...)'
             # rmarkdown specifies 'html_document' and not 'html'...
@@ -595,7 +609,9 @@ class Knitpy(LoggingConfigurable):
         for fmt in output_formats:
             self._ensure_valid_output(fmt)
             self.log.info("Converting document %s to %s", filename, self.default_export_format)
-
+            # TODO: build a proper way to specify final output...
+            if fmt == "word_document":
+                fmt = "docx_document"
             md_temp = MarkdownOutputDocument(fileoutputs=outputdir_name, export_format=fmt,
                                         log=self.log, parent=self)
 
@@ -651,31 +667,57 @@ class Knitpy(LoggingConfigurable):
 
 class ExecutionContext(LoggingConfigurable):
 
-    mode = CaselessStrEnum(default_value=None, values=["inline", "block"],
-                                 allow_none=True, config=False, help="Inline or block")
-
-    engine = Instance(klass=BaseKnitpyEngine, allow_none=True, config=False,
-                            help="The current engine")
-
+    # These two are valid for the time of the existance of this contex
     output = Instance(klass=MarkdownOutputDocument, allow_none=True, config=False,
-                            help="The current output document")
+                            help="current output document")
 
-    echo = Bool(True,config=True, help="If False, knitpy will not display the code in the code "
-                                        "chunk above it’s results in the final document.")
+    chunk_number = Integer(0, config=False, allow_none=False, help="current chunk number")
+    def _chunk_number_changed(self, name, old, new):
+        if old != new:
+            self.chunk_label= None
+
+    # the following are valid for the time of one code execution
+    chunk_label = Unicode(None, config=False, allow_none=True, help="current chunk label")
+    chunk_plot_number = Integer(0, config=False, allow_none=False,
+                                help="current plot number in this chunk")
+    def _chunk_label_changed(self, name, old, new):
+        if old != new:
+            self.chunk_plot_number = 0
+
+    echo = Bool(True, config=False, help="If False, knitpy will not display the code in the code "
+                                        "chunk above it's results in the final document.")
 
     results = CaselessStrEnum(default_value="markup", values=["markup", "hide", "hold", "asis"],
-                              allow_none=False, config=True,
+                              allow_none=False, config=False,
                               help="If 'hide', knitpy will not display the code’s results in the "
                                    "final document. If 'hold', knitpy will delay displaying all  "
                                    "output pieces until the end of the chunk. If 'asis', "
                                    "knitpy will pass through results without reformatting them "
                                    "(useful if results return raw HTML, etc.)")
 
-    include = Bool(True,config=True, help="If False, knitpy will will run the chunk but not "
+    include = Bool(True, config=False, help="If False, knitpy will will run the chunk but not "
                                           "include the chunk in the final document.")
 
-    def __init__(self, mode, engine, output, **kwargs):
+    mode = CaselessStrEnum(default_value=None, values=["inline", "block"],
+                                 allow_none=True, config=False, help="current mode: inline or "
+                                                                     "block")
+
+    engine = Instance(klass=BaseKnitpyEngine, allow_none=True, config=False,
+                            help="current engine")
+
+
+    def __init__(self, output, **kwargs):
         super(ExecutionContext,self).__init__(**kwargs)
-        self.mode = mode
-        self.engine = engine
         self.output = output
+        output.context = self
+
+    def execution_started(self):
+        self.chunk_number += 1
+
+    def execution_finished(self):
+        reset_needed = ["engine", "mode"
+                        "chunk_label",
+                        "include", "echo",  "include", "results"]
+        for name in self.trait_names():
+            if name in reset_needed:
+                self.traits()[name].set_default_value(self)
