@@ -30,9 +30,9 @@ from IPython.utils.traitlets import (
 )
 
 
-from .documents import MarkdownOutputDocument
+from .documents import TemporaryOutputDocument
 from .utils import get_by_name
-from .knitpy import DEFAULT_OUTPUT_FORMAT, VALID_OUTPUT_FORMATS, Knitpy, ParseException
+from .knitpy import DEFAULT_OUTPUT_FORMAT_NAME, VALID_OUTPUT_FORMAT_NAMES, Knitpy, ParseException
 
 
 #-----------------------------------------------------------------------------
@@ -104,7 +104,7 @@ class KnitpyApp(BaseIPythonApplication):
         return logging.INFO
 
     def _classes_default(self):
-        classes = [KnitpyApp, Knitpy, MarkdownOutputDocument, ProfileDir, ]
+        classes = [KnitpyApp, Knitpy, TemporaryOutputDocument, ProfileDir, ]
         # TODO: engines should be added here
         return classes
 
@@ -135,8 +135,8 @@ class KnitpyApp(BaseIPythonApplication):
 
     # Other configurable variables
     # '--to' ends up here
-    export_format = CaselessStrEnum(VALID_OUTPUT_FORMATS+["all"],
-        default_value=DEFAULT_OUTPUT_FORMAT,
+    export_format = CaselessStrEnum(VALID_OUTPUT_FORMAT_NAMES+["all"],
+        default_value=DEFAULT_OUTPUT_FORMAT_NAME,
         config=True,
         help="""The export format to be used."""
     )

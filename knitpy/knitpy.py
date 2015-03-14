@@ -30,7 +30,7 @@ from pypandoc import convert as pandoc
 from IPython.config.configurable import LoggingConfigurable
 
 from IPython.utils.traitlets import (
-    Bool, Integer, CaselessStrEnum, CRegExp, Instance, Unicode
+    Bool, Integer, CaselessStrEnum, CRegExp, Instance, Unicode, List
 )
 from IPython.utils import py3compat
 from IPython.utils.py3compat import unicode_type
@@ -41,10 +41,12 @@ from IPython.kernel.multikernelmanager import MultiKernelManager
 from IPython.kernel.kernelspec import KernelSpecManager
 
 # Our own stuff
-from .documents import MarkdownOutputDocument, KnitpyOutputException
+from .documents import (TemporaryOutputDocument, FinalOutputConfiguration, KnitpyOutputException,
+                        VALID_OUTPUT_FORMAT_NAMES, DEFAULT_OUTPUT_FORMAT_NAME,
+                        DEFAULT_FINAL_OUTPUT_FORMATS, IMAGE_FILEEXTENSION_TO_MIMETYPE)
 from .engines import BaseKnitpyEngine, PythonKnitpyEngine
-from .utils import get_by_name, CRegExpMultiline, _plain_text, _code, is_string
-
+from .utils import CRegExpMultiline, _plain_text, _code, is_string
+from IPython.utils.py3compat import iteritems
 
 TBLOCK, TINLINE, TTEXT = range(3)
 
@@ -54,7 +56,6 @@ class KnitpyException(Exception):
 class ParseException(KnitpyException):
     pass
 
-from .documents import OUTPUT_FORMATS, VALID_OUTPUT_FORMATS, DEFAULT_OUTPUT_FORMAT
 
 class Knitpy(LoggingConfigurable):
     """Engine used to convert from python markdown (``*.pymd``) to html/latex/..."""
@@ -64,10 +65,13 @@ class Knitpy(LoggingConfigurable):
     log_to_file = Bool(False, config=True,
         help="""Whether to send the log to a file""")
 
-    default_export_format = CaselessStrEnum(VALID_OUTPUT_FORMATS,
-        default_value=DEFAULT_OUTPUT_FORMAT,
+    extra_document_configs = List(default_value=[], config=True,
+                           help="Additional configurations for FinalOutputDocuments")
+
+    default_export_format = CaselessStrEnum(VALID_OUTPUT_FORMAT_NAMES,
+        default_value=DEFAULT_OUTPUT_FORMAT_NAME,
         config=True,
-        help="""The export format to be used."""
+        help="""The export format to be used (can't by from extra_document_configs!)."""
     )
 
     kernel_debug = Bool(False, config=True,
@@ -75,7 +79,7 @@ class Knitpy(LoggingConfigurable):
 
     timeout = Integer(10, config=True, help="timeout for individual code executions")
 
-    # Things for the parser....
+    # Things for the parser...
     chunk_begin = CRegExpMultiline(r'^\s*```+\s*{[.]?(?P<engine>[a-z]+)\s*(?P<args>.*)}\s*$',
                                    config=True, help="chunk begin regex (must include the named "
                                                      "group 'engine' and 'args'")
@@ -86,12 +90,11 @@ class Knitpy(LoggingConfigurable):
     yaml_separator = CRegExpMultiline(r"^---\s*$", config=True,
                                       help="separator for the yaml metadata")
 
-
-
     def __init__(self, **kwargs):
         super(Knitpy,self).__init__(**kwargs)
         self.init_kernel_manager()
         self.init_engines()
+        self.init_output_configurations()
 
 
     def init_kernel_manager(self):
@@ -104,6 +107,17 @@ class Knitpy(LoggingConfigurable):
         self._engines = {}
         self._engines["python"] = PythonKnitpyEngine(parent=self)
         # TODO: check that every kernel_name is in ksm.find_kernel_specs()
+
+    def init_output_configurations(self):
+        self._outputs = {}
+        for config in DEFAULT_FINAL_OUTPUT_FORMATS:
+            fod = FinalOutputConfiguration(parent=self, **config)
+            self._outputs[config["name"]] = fod
+            self._outputs[config["alias"]] = fod
+        for config in self.extra_document_configs:
+            fod = FinalOutputConfiguration(parent=self, **config)
+            self._outputs[config["name"]] = fod
+            self._outputs[config["alias"]] = fod
 
     def parse_document(self,filename):
         f = codecs.open(filename, 'r', 'UTF-8')
@@ -220,7 +234,7 @@ class Knitpy(LoggingConfigurable):
         # for compatibility with knitr, where python is specified via "{r engine='python'}"
         if "engine" in args:
             engine_name = args.pop("engine")
-            self.log.debug("Running on engin: %s", engine_name)
+            self.log.debug("Running on engine: %s", engine_name)
 
         try:
             engine = self._engines[engine_name]
@@ -228,6 +242,14 @@ class Knitpy(LoggingConfigurable):
             raise ParseException("Unknown codeblock type: %s" % engine_name)
         assert not engine is None, "Engine is None"
         context.engine = engine
+        if not engine.name in context.enabled_documents:
+            plotting_formats = context.output.export_config.accepted_image_formats
+            plot_code = engine.get_plotting_format_code(plotting_formats)
+            self._run_silently(context.engine.kernel, plot_code)
+            context.enabled_documents.append(engine.name)
+            self.log.info("Enabled image formats '%s' in engine '%s'.",
+                          plotting_formats,
+                          engine.name)
 
         # configure the context
         if "echo" in args:
@@ -456,9 +478,11 @@ class Knitpy(LoggingConfigurable):
                 #self.log.debug(str(data))
 
                 # handle plots
-                for mime_type in context.output.plot_mimetypes:
+                #self.log.debug("Accepted image mimetypes: %s", context.output.export_config.accepted_image_mimetypes)
+                for mime_type in context.output.export_config.accepted_image_mimetypes:
                     mime_data = data.get(mime_type, None)
                     if mime_data is None:
+                        self.log.debug("No image found: %s", mime_type)
                         continue
                     try:
                         self.log.debug("Trying to include image...")
@@ -517,6 +541,25 @@ class Knitpy(LoggingConfigurable):
                 self.log.debug("Ignored msg of type %s" % type)
 
 
+    def _run_silently(self, kc, lines):
+        try:
+            msg_id = kc.execute(lines + "\n\n", silent=self.kernel_debug, store_history=False)
+            self.log.debug("Executed silent code: %s", lines)
+            reply = kc.get_shell_msg(timeout=self.timeout)
+            assert reply['parent_header'].get('msg_id') == msg_id, "Wrong reply! " + str(reply)
+            if self.kernel_debug:
+                self.log.debug("Silent code shell reply: %s", reply)
+        except Empty:
+            self.log.error("Code took too long:\n %s", lines)
+
+        # now empty the iopub channel (there is at least a "starting" message)
+        while True:
+            try:
+                msg = kc.get_iopub_msg(timeout=0.1)
+                if self.kernel_debug:
+                    self.log.debug("Silent code iopub msg: %s", msg)
+            except Empty:
+                break
 
     def _get_kernel(self, engine):
         kernel_name = engine.kernel_name
@@ -532,22 +575,8 @@ class Knitpy(LoggingConfigurable):
             # now initalize the channels
             kc.start_channels()
             kc.wait_for_ready()
-            try:
-                msg_id = kc.execute(kernel_startup_lines+"\n\n")
-                reply = kc.get_shell_msg(timeout=self.timeout)
-                assert reply['parent_header'].get('msg_id') == msg_id, "Wrong reply! " + str(reply)
-                self.log.info("Executed kernel startup lines: %s", kernel_startup_lines)
-            except Empty:
-                self.log.error("Startup lines took too long:\n %s", kernel_startup_lines)
-
-            # now empty the iopub channel (there is at least a "starting" message)
-            while True:
-                try:
-                    msg = kc.get_iopub_msg(timeout=0.1)
-                    if self.kernel_debug:
-                        self.log.debug("Startup reply: %s", msg)
-                except Empty:
-                    break
+            self._run_silently(kc, kernel_startup_lines)
+            self.log.info("Executed kernel startup lines for engine '%s'.", engine.name)
 
         return self._kernels[kernel_name]
 
@@ -587,8 +616,7 @@ class Knitpy(LoggingConfigurable):
 
         # get the output formats
         # order: kwarg overwrites default overwrites document
-        output_formats = [self.default_export_format+"_document"]
-        print(output)
+        output_formats = [self._outputs[self.default_export_format]]
         if output is None:
             self.log.debug("Converting to default output format [%s]!" % self.default_export_format)
         elif output == "all":
@@ -597,29 +625,38 @@ class Knitpy(LoggingConfigurable):
             if outputs is None:
                 self.log.debug("Did not find any specified output formats: using only default!")
             else:
-                output_formats = [fmt for fmt in outputs.iterkeys()]
-                self.log.debug("Converting to all specified output formats: %s" % output_formats)
+                output_formats = []
+                for fmt_name, config in iteritems(outputs):
+                    self._ensure_valid_output(fmt_name)
+                    fod = self._outputs.get(fmt_name).copy()
+                    # self.log.info("%s: %s", fmt_name, config)
+                    if isinstance(config, dict):
+                        fod.update(**config)
+                    elif config == "default":
+                        # html_document: default
+                        pass
+                    else:
+                        self.log.error("Unknown config for document '%s': '%s'. Ignored...",
+                                      fmt_name, config)
+                    output_formats.append(fod)
+                self.log.debug("Converting to all specified output formats: %s" %
+                               [fmt.name for fmt in output_formats])
         else:
-            # TODO: rmarkdown lets you specify 'html_document(output metadata...)'
-            # rmarkdown specifies 'html_document' and not 'html'...
-            if not output.endswith("_document"):
-                output = output+"_document"
-            output_formats = [output]
+            self._ensure_valid_output(output)
+            output_formats = [self._outputs[output]]
 
-        for fmt in output_formats:
-            self._ensure_valid_output(fmt)
-            self.log.info("Converting document %s to %s", filename, fmt)
+        for final_format in output_formats:
+            self.log.info("Converting document %s to %s", filename, final_format.name)
             # TODO: build a proper way to specify final output...
-            if fmt == "word_document":
-                fmt = "docx_document"
-            md_temp = MarkdownOutputDocument(fileoutputs=outputdir_name, export_format=fmt,
-                                        log=self.log, parent=self)
+
+            md_temp = TemporaryOutputDocument(fileoutputs=outputdir_name,
+                                              export_config=final_format,
+                                              log=self.log, parent=self)
 
             # get the temporary md file
             self.convert(parsed, md_temp)
-            keepmd_meta = get_by_name(metadata, "output."+fmt+".keep_md", na=False)
-            if keepmd_meta or self.keep_md:
-                mdfilename = basename+"."+fmt+".md"
+            if final_format.keep_md or self.keep_md:
+                mdfilename = basename+"."+final_format.name+".md"
                 self.log.info("Saving the temporary markdown as '%s'." % mdfilename)
                 # TODO: remove the first yaml metadata block and
                 # put "#<title>\n<author>\n<date>" before the rest
@@ -640,13 +677,11 @@ class Knitpy(LoggingConfigurable):
                      "--section-divs",
                      ]
 
-            format, fileending = OUTPUT_FORMATS[fmt[:-9]]
-
-            outfilename = basename+"." +fileending
+            outfilename = basename+"." +final_format.file_extension
 
             # exported is irrelevant, as we pass in a filename
             exported = pandoc(source=md_temp.content,
-                              to=format,
+                              to=final_format.pandoc_export_format,
                               format=input_format,
                               extra_args=extra,
                               outputfile=outfilename)
@@ -657,25 +692,23 @@ class Knitpy(LoggingConfigurable):
         return converted_docs
 
 
-    def _ensure_valid_output(self, fmt):
-        if not fmt.endswith("_document"):
-            msg = "Output format does not end in '_document': %s" % fmt
-            self.log.error(msg)
-            raise ParseException(msg)
-        # TODO: test that the rest is in some "implemented" state...
-        pass
-
+    def _ensure_valid_output(self, fmt_name):
+        if fmt_name in self._outputs:
+            return
+        raise KnitpyException("Format '%s' is not a valid output format!" % fmt_name)
 
 class ExecutionContext(LoggingConfigurable):
 
-    # These two are valid for the time of the existance of this contex
-    output = Instance(klass=MarkdownOutputDocument, allow_none=True, config=False,
+    # These first are valid for the time of the existance of this contex
+    output = Instance(klass=TemporaryOutputDocument, allow_none=True, config=False,
                             help="current output document")
 
     chunk_number = Integer(0, config=False, allow_none=False, help="current chunk number")
     def _chunk_number_changed(self, name, old, new):
         if old != new:
             self.chunk_label= None
+
+    enabled_documents = List([], config=False, help="Names for enabled documents.")
 
     # the following are valid for the time of one code execution
     chunk_label = Unicode(None, config=False, allow_none=True, help="current chunk label")
