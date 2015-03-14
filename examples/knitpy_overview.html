@@ -159,7 +159,7 @@ e
 </tbody>
 </table>
 </div>
-<p><code>pandas.DataFrame</code> can be represented as <code>text/plain</code> or <code>text/html</code>. Unfortunately, pandoc cannot convert <code>html</code> to <code>docx</code>. If this document is converted into <code>docx</code>, the above will be displayed as <code>text/plain</code>, which looks like the following:</p>
+<p><code>pandas.DataFrame</code> can be represented as <code>text/plain</code> or <code>text/html</code>. Unfortunately, pandoc cannot convert <code>html</code> to <code>docx</code> or <code>pdf</code>. If this document is converted into <code>docx</code>, the above will be displayed as <code>text/plain</code>, which looks like the following:</p>
 <pre class="sourceCode python"><code class="sourceCode python">pd.set_option(<span class="st">&quot;display.notebook_repr_html&quot;</span>, <span class="ot">False</span>) 
 df</code></pre>
 <pre><code>   a                    b
@@ -170,7 +170,7 @@ df</code></pre>
 4  5                    e</code></pre>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="co"># set back the display </span>
 pd.set_option(<span class="st">&quot;display.notebook_repr_html&quot;</span>, <span class="ot">True</span>) </code></pre>
-<p>It’s possible to get around this limitation by using the <a href="https://bitbucket.org/astanin/python-tabulate">tabulate</a> package together with <code>results=&quot;asis&quot;</code>. Unfortunately, this still breaks in latex/pdf documents :-/</p>
+<p>It’s possible to get around this limitation by using the <a href="https://bitbucket.org/astanin/python-tabulate">tabulate</a> package together with <code>results=&quot;asis&quot;</code>.</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="ch">from</span> tabulate <span class="ch">import</span> tabulate
 <span class="ch">from</span> IPython.core.display <span class="ch">import</span> display, Markdown
 <span class="co"># either print and use `results=&quot;asis&quot;`</span>
@@ -249,7 +249,7 @@ Markdown(tabulate(df, <span class="dt">list</span>(df.columns), tablefmt=<span c
 </tr>
 </tbody>
 </table>
-<p>Make very sure that the <code>DataFrame</code> is not too long…</p>
+<p>Unfortunately, all three versions are not perfect (e.g. all have problems with wide tables in PDF, which spill over the page margin).</p>
 </div>
 <div id="error-handling" class="section level3">
 <h3>Error handling</h3>
@@ -258,7 +258,7 @@ Markdown(tabulate(df, <span class="dt">list</span>(df.columns), tablefmt=<span c
 <span class="dt">print</span>(sys.not_available)</code></pre>
 <p><strong>ERROR</strong>: AttributeError: ‘module’ object has no attribute ‘not_available’</p>
 <pre><code>AttributeError                            Traceback (most recent call last)
-&lt;ipython-input-31-a5971246c0f7&gt; in &lt;module&gt;()
+&lt;ipython-input-29-a5971246c0f7&gt; in &lt;module&gt;()
 ----&gt; 1 print(sys.not_available)
 
 AttributeError: 'module' object has no attribute 'not_available'</code></pre>

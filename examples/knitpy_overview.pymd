@@ -84,7 +84,6 @@ shown in this case (`echo=False`).
 
 ```{python sinus, echo=False}
 # As this all produces no output, it should go into the same input section...
-%matplotlib inline
 import numpy as np
 import matplotlib.pyplot as plt
 y = np.linspace(2, 10)
@@ -111,7 +110,7 @@ df = pd.DataFrame({"a":[1,2,3,4,5],"b":[s,"b","c",s,"e"]})
 df
 ```
 
-`pandas.DataFrame` can be represented as `text/plain` or `text/html`. Unfortunately, pandoc cannot convert `html` to `docx`. If this document is converted into `docx`, the above will be displayed as `text/plain`, which looks like the following:
+`pandas.DataFrame` can be represented as `text/plain` or `text/html`. Unfortunately, pandoc cannot convert `html` to `docx` or `pdf`. If this document is converted into `docx`, the above will be displayed as `text/plain`, which looks like the following:
 
 ```{python}
 pd.set_option("display.notebook_repr_html", False) 
@@ -120,7 +119,7 @@ df
 pd.set_option("display.notebook_repr_html", True) 
 ```
 
-It's possible to get around this limitation by using the [tabulate](https://bitbucket.org/astanin/python-tabulate) package together with `results="asis"`. Unfortunately, this still breaks in latex/pdf documents :-/
+It's possible to get around this limitation by using the [tabulate](https://bitbucket.org/astanin/python-tabulate) package together with `results="asis"`. 
 
 ```{python results="asis"}
 from tabulate import tabulate
@@ -131,7 +130,7 @@ print(tabulate(df, list(df.columns), tablefmt="simple"))
 Markdown(tabulate(df, list(df.columns), tablefmt="simple"))
 ```
 
-Make very sure that the `DataFrame` is not too long...
+Unfortunately, all three versions are not perfect (e.g. all have problems with wide tables in PDF, which spill over the page margin).
 
 ### Error handling
 
