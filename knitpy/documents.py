@@ -9,22 +9,20 @@ from pypandoc import convert as pandoc
 # Basic things from IPython
 from IPython.config.configurable import LoggingConfigurable
 from IPython.utils.traitlets import Bool, Unicode, CaselessStrEnum, List, Instance
+from IPython.utils.py3compat import iteritems
 
 from .utils import is_iterable, is_string
 
 TEXT, OUTPUT, CODE, ASIS = "text", "output", "code", "asis"
 
-OUTPUT_FORMATS = {
-    #name: (pandoc_to_format, fileending)
-    "html": ("html", "html"),
-    "pdf": ("latex", "pdf"),
-    "docx": ("docx", "docx")
-}
 
-VALID_OUTPUT_FORMATS = OUTPUT_FORMATS.keys()
-DEFAULT_OUTPUT_FORMAT = "html"
+IMAGE_MIMETYPE_TO_FILEEXTENSION = OrderedDict([("image/png","png"),
+                                        ("image/svg+xml","svg"),
+                                        ("image/jpeg","jpg"),
+                                        ("application/pdf","pdf")])
+IMAGE_FILEEXTENSION_TO_MIMETYPE = dict([(v,k) for k,v in iteritems(
+                                        IMAGE_MIMETYPE_TO_FILEEXTENSION)])
 
-IMAGE_FORMAT_FILEENDINGS = OrderedDict([("image/png","png"), ("image/svg","svg")])
 MARKUP_FORMAT_CONVERTER = OrderedDict([("text/markdown", "markdown"),
                                        ("text/x-markdown", "markdown"),
                                        ("text/html", "html"),
@@ -33,7 +31,85 @@ MARKUP_FORMAT_CONVERTER = OrderedDict([("text/markdown", "markdown"),
 class KnitpyOutputException(Exception):
     pass
 
-class MarkdownOutputDocument(LoggingConfigurable):
+# this is the intersection of what matplotlib supports (eps, pdf, pgf, png, ps, raw, rgba, svg,
+# svgz) and what IPython supports ('png', 'png2x', 'retina', 'jpg', 'jpeg', 'svg', 'pdf')...
+_possible_image_formats = CaselessStrEnum(values=['pdf', 'png', 'svg'])
+
+DEFAULT_FINAL_OUTPUT_FORMATS = [
+    {"name": "html_document", "alias": "html",
+     "pandoc_export_format": "html", "file_extension": "html",
+     "accepted_image_formats": ["png", "svg"]},
+    {"name": "word_document", "alias": "docx",
+     "pandoc_export_format": "docx", "file_extension": "docx",
+     "accepted_image_formats": ["png", "svg"]},
+    {"name": "pdf_document", "alias": "pdf",
+     "pandoc_export_format": "latex", "file_extension": "pdf",
+     "accepted_image_formats": ["pdf"]},
+    ]
+VALID_OUTPUT_FORMAT_NAMES = [fmt["name"]  for fmt in DEFAULT_FINAL_OUTPUT_FORMATS] + \
+                       [fmt["alias"]  for fmt in DEFAULT_FINAL_OUTPUT_FORMATS]
+
+DEFAULT_OUTPUT_FORMAT_NAME = "html_document"
+
+class FinalOutputConfiguration(LoggingConfigurable):
+    """
+    This class holds configuration information about the final output document.
+    """
+
+    name = Unicode("html_document", help="The name of this type of documents")
+
+    alias = Unicode("html", help="The alias of this type of documents")
+
+    pandoc_export_format = Unicode("html", help="The name of the pandoc export format")
+
+    file_extension = Unicode("html", help="The file extension")
+
+    keep_md = Bool(False, help="Whether to keep the temporary markdown file.")
+
+    accepted_image_formats = List(
+        trait=_possible_image_formats,
+        default_value=['png', 'svg'], # that's for html, which does not use pdf
+        config=False,
+        help="""The accepted image formats."""
+    )
+
+    accepted_image_mimetypes = List(
+        config=False,
+        default_value=[IMAGE_FILEEXTENSION_TO_MIMETYPE[ifmt] for ifmt in ['png', 'jpg', 'svg']]
+    )
+
+    def _accepted_image_formats_changed(self, name, old, new):
+        if new != old:
+            converted = [IMAGE_FILEEXTENSION_TO_MIMETYPE[ifmt] for ifmt in new]
+            self.accepted_image_mimetypes = converted
+
+    def update(self, **config):
+        """Update this
+
+        :param config: dict of properties to be updated
+        """
+        for name, config_value in iteritems(config):
+            if hasattr(self, name):
+                setattr(self, name, config_value)
+            else:
+                self.log.error("Unknown config for document '%s': '%s:%s'. Ignored...",
+                                      self.name, name, config_value)
+
+
+    def copy(self):
+        """Copy Constructor
+
+        :return: copy of self
+        """
+        config = {}
+        for name in self.trait_names():
+            config[name] = getattr(self,name)
+        new_fod = type(self)(**config)
+        return new_fod
+
+
+
+class TemporaryOutputDocument(LoggingConfigurable):
 
     output_debug = Bool(False, config=True,
         help="""Whether to print outputs to the (debug) log""")
@@ -47,14 +123,10 @@ class MarkdownOutputDocument(LoggingConfigurable):
                                  help="Start of a output block, without linefeed")
     output_endmarker = Unicode("```", config=True, help="End of a output block, without linefeed")
 
-    export_format = CaselessStrEnum(VALID_OUTPUT_FORMATS,
-        default_value=DEFAULT_OUTPUT_FORMAT,
-        config=False,
-        help="""The export format to be used."""
-    )
+    export_config = Instance(klass=FinalOutputConfiguration, help="Final output document configuration")
 
 
-    plot_mimetypes = List(default_value=IMAGE_FORMAT_FILEENDINGS.keys(), allow_none=False,
+    plot_mimetypes = List(default_value=IMAGE_MIMETYPE_TO_FILEEXTENSION.keys(), allow_none=False,
                           config=True,
                           help="Mimetypes, which should be handled as plots.")
 
@@ -64,12 +136,10 @@ class MarkdownOutputDocument(LoggingConfigurable):
 
     context = Instance(klass="knitpy.knitpy.ExecutionContext", config=False, allow_none=True)
 
-    def __init__(self, fileoutputs, export_format="html", **kwargs):
-        super(MarkdownOutputDocument,self).__init__(**kwargs)
+    def __init__(self, fileoutputs, export_config, **kwargs):
+        super(TemporaryOutputDocument,self).__init__(**kwargs)
         self._fileoutputs = fileoutputs
-        if export_format.endswith("_document"):
-            export_format = export_format[:-9]
-        self.export_format = export_format
+        self.export_config = export_config
         self._output = []
 
     @property
@@ -82,7 +152,7 @@ class MarkdownOutputDocument(LoggingConfigurable):
 
     @property
     def plotdir(self):
-        plotdir_name = "figure-%s" % self.export_format
+        plotdir_name = "figure-%s" % self.export_config.file_extension
         plotdir = os.path.join(self.outputdir, plotdir_name)
         if not os.path.isdir(plotdir):
             os.mkdir(plotdir)
@@ -179,11 +249,11 @@ class MarkdownOutputDocument(LoggingConfigurable):
             if not self.context is None:
                 filename = u"%s-%s.%s" % (self.context.chunk_label,
                                           self.context.chunk_plot_number,
-                                          IMAGE_FORMAT_FILEENDINGS[mimetype])
+                                          IMAGE_MIMETYPE_TO_FILEEXTENSION[mimetype])
                 f = open(os.path.join(self.plotdir, filename), mode='w+b')
             else:
                 self.log.info("Context no specified: using random filename for image")
-                f = tempfile.NamedTemporaryFile(suffix="."+IMAGE_FORMAT_FILEENDINGS[mimetype],
+                f = tempfile.NamedTemporaryFile(suffix="."+IMAGE_MIMETYPE_TO_FILEEXTENSION[mimetype],
                                                 prefix='plot', dir=self.plotdir, mode='w+b',
                                                 delete=False)
             f.write(mimedata)
@@ -215,7 +285,8 @@ class MarkdownOutputDocument(LoggingConfigurable):
 
         to_format = "markdown"
         # try to convert to the current format so that it can be included "asis"
-        if not MARKUP_FORMAT_CONVERTER[mimetype] in [to_format, self.export_format]:
+        if not MARKUP_FORMAT_CONVERTER[mimetype] in [to_format,
+                                                     self.export_config.pandoc_export_format]:
             if "<table" in mimedata:
                 raise KnitpyOutputException("pandoc can't convert html tables to markdown, "
                                             "skipping...")

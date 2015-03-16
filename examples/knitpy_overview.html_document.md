@@ -159,7 +159,7 @@ df
 <div style="max-height:1000px;max-width:1500px;overflow:auto;"><table border="1" class="dataframe"><thead><tr style="text-align: right;"><th></th><th>a</th><th>b</th></tr></thead><tbody><tr><th>0</th><td> 1</td><td> This is longer text</td></tr><tr><th>1</th><td> 2</td><td> b</td></tr><tr><th>2</th><td> 3</td><td> c</td></tr><tr><th>3</th><td> 4</td><td> This is longer text</td></tr><tr><th>4</th><td> 5</td><td> e</td></tr></tbody></table></div>
 
 
-`pandas.DataFrame` can be represented as `text/plain` or `text/html`. Unfortunately, pandoc cannot convert `html` to `docx`. If this document is converted into `docx`, the above will be displayed as `text/plain`, which looks like the following:
+`pandas.DataFrame` can be represented as `text/plain` or `text/html`. Unfortunately, pandoc cannot convert `html` to `docx` or `pdf`. If this document is converted into `docx`, the above will be displayed as `text/plain`, which looks like the following:
 
 
 ``` python
@@ -182,7 +182,7 @@ pd.set_option("display.notebook_repr_html", True)
 ```
 
 
-It's possible to get around this limitation by using the [tabulate](https://bitbucket.org/astanin/python-tabulate) package together with `results="asis"`. Unfortunately, this still breaks in latex/pdf documents :-/
+It's possible to get around this limitation by using the [tabulate](https://bitbucket.org/astanin/python-tabulate) package together with `results="asis"`. 
 
 
 ``` python
@@ -216,7 +216,7 @@ Markdown(tabulate(df, list(df.columns), tablefmt="simple"))
  4    5  e
 
 
-Make very sure that the `DataFrame` is not too long...
+Unfortunately, all three versions are not perfect (e.g. all have problems with wide tables in PDF, which spill over the page margin).
 
 ### Error handling
 
@@ -233,7 +233,7 @@ print(sys.not_available)
 
 ```
 AttributeError                            Traceback (most recent call last)
-<ipython-input-31-a5971246c0f7> in <module>()
+<ipython-input-29-a5971246c0f7> in <module>()
 ----> 1 print(sys.not_available)
 
 AttributeError: 'module' object has no attribute 'not_available'
