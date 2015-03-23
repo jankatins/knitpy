@@ -141,6 +141,14 @@ class TemporaryOutputDocument(LoggingConfigurable):
         self._fileoutputs = fileoutputs
         self.export_config = export_config
         self._output = []
+        # Init the caching system (class variables cache the first output of a former conversion
+        # in future runs)
+        self._last_content = None
+        self._cache_text = []
+        self._cache_code = []
+        self._cache_code_language = None
+        self._cache_output = []
+
 
     @property
     def outputdir(self):
@@ -165,12 +173,6 @@ class TemporaryOutputDocument(LoggingConfigurable):
 
     # The caching system is needed to make fusing together same "type" of content possible
     # -> code inputs without output should go to the same block
-    _last_content = None
-    _cache_text = []
-    _cache_code = []
-    _cache_code_language = None
-    _cache_output = []
-
     def flush(self):
         if self.output_debug:
             self.log.debug("Flushing caches in output.")
@@ -203,7 +205,11 @@ class TemporaryOutputDocument(LoggingConfigurable):
             content = [u"%s" % content]
 
         if self.output_debug:
-            self.log.debug("Adding '%s': %s", content_type, content)
+            if content_type == CODE:
+                _type = "%s (%s)" % (content_type, self._cache_code_language)
+            else:
+                _type = content_type
+            self.log.debug("Adding '%s': %s", _type, content)
 
         if content_type != self._last_content:
             self.flush()
