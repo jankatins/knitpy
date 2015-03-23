@@ -288,8 +288,12 @@ class TemporaryOutputDocument(LoggingConfigurable):
         if not MARKUP_FORMAT_CONVERTER[mimetype] in [to_format,
                                                      self.export_config.pandoc_export_format]:
             if "<table" in mimedata:
-                raise KnitpyOutputException("pandoc can't convert html tables to markdown, "
-                                            "skipping...")
+                # There is a bug in pandoc <=1.13.2, where th in normal tr is triggers "only
+                # text" conversion.
+                msg = "Trying to fix tables for conversion with pandoc (bug in pandoc <=1.13.2)."
+                self.log.debug(msg)
+                mimedata = self._fix_html_tables_old_pandoc(mimedata)
+
             try:
                 self.log.debug("Converting markup of type '%s' to '%s' via pandoc...",
                                mimetype, to_format)
@@ -307,6 +311,42 @@ class TemporaryOutputDocument(LoggingConfigurable):
         self.add_asis("\n")
         self.add_asis(mimedata)
         self.add_asis("\n")
+
+    def _fix_html_tables_old_pandoc(self, htmlstring):
+        """
+        Fix html tables, so that they are recognized by pandoc
+
+        pandoc in <=1.13.2 converts tables with '<th>' and <td> to plain text (each cell one
+        paragraph. Remove all <th> in later rows (tbody) by replacing it with <td>. This is
+        close to the same solution as taken by pandoc in 1.13.3 and later.
+
+        See also: https://github.com/jgm/pandoc/issues/2015
+        """
+        result = []
+        pos = 0
+        re_tables = re.compile(r"<table.*</table>", re.DOTALL)
+        re_tbody = re.compile(r"<tbody.*</tbody>", re.DOTALL)
+        tables = re_tables.finditer(htmlstring)
+        for table in tables:
+            # process the html before the match
+            result.append(htmlstring[pos:table.start()])
+            # now the table itself
+            table_html = htmlstring[table.start():table.end()]
+            tbody = re_tbody.search(table_html)
+            if not tbody is None:
+                result.append(table_html[0:tbody.start()])
+                tbody_html = table_html[tbody.start():tbody.end()]
+                tbody_html = tbody_html.replace("<th","<td")
+                tbody_html = tbody_html.replace("</th>", "</td>")
+                result.append(tbody_html)
+                result.append(table_html[tbody.end():])
+            else:
+                result.append(table_html)
+            pos = table.end()
+        result.append(htmlstring[pos:])
+
+        return "".join(result)
+
 
 
     def add_execution_error(self, error, details=""):
