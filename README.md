@@ -18,12 +18,16 @@ It uses the IPython kernel infrastructure to execute code, so all kernels for IP
 are (aem... can potentially be) supported.
 
 ## What works:
-* `knitpy filename.pymd` will convert filename `filename.pymd` to the defaul output format `html`.
-* output formats `html`, `pdf` and `docx`. Change with `--to=<format>`
 * code blocks and inline code
 * plots are shown inline
+* `knitpy filename.pymd` will convert filename `filename.pymd` to the defaul output format `html`.
+* output formats `html`, `pdf` and `docx`. Change with `--to=<format>`
+* `--to=all` will convert to all export formats specified in the yaml header
 * code chunk arguments `eval`, `results` (apart form "hold"), `include` and `echo`
 * errors in code chunks are shown in the document
+* uses the IPython display framework, so rich output for objects implementing `_repr_html_()` or 
+  `_repr_markdown_()`. Mimetypes not understood by the final output format are automatically 
+  converted via pandoc.
 * config files: generate a empty one with `knitpy --init --profile-dir=.`
 * using it from python (-> your app/ ipython notebook): 
   `import knitpy; knitpy.render(filename.pymd, output="html")` will convert `filename.pymd`
@@ -42,9 +46,6 @@ are (aem... can potentially be) supported.
 * refactor the parsing, so that it is line based
   - errors make more sense, because it knows the line ("block starting at line....")
 * add some traits for the default pdflatex/pandoc executeable, so they don't have to be in path
-* the final output has to configure the output plot types: 
-  - pdf can't use svg, prefers pdf
-  - html can handle svg but not pdf...
 * the final output has to configure the "includeable" markup docs
   - html in html
   - latex in html?
@@ -61,7 +62,6 @@ are (aem... can potentially be) supported.
 * Documentation
   - what works? what is not supported?
   - differences to rmarkdown / knitr?
-* sane naming scheme for plots/... -> subdirs, naming-by-chunk-name
 * implement more kernel engines (R...) and make it possible to supply/change ones 
   (for installed kernels for python2/3 or coda environments)
 * implement a nice default html template
