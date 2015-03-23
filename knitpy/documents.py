@@ -73,6 +73,7 @@ class FinalOutputConfiguration(LoggingConfigurable):
         help="""The accepted image formats."""
     )
 
+    # This is atomatically filled from accepted_image_formats
     accepted_image_mimetypes = List(
         config=False,
         default_value=[IMAGE_FILEEXTENSION_TO_MIMETYPE[ifmt] for ifmt in ['png', 'jpg', 'svg']]
