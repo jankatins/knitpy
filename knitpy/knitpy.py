@@ -208,6 +208,7 @@ class Knitpy(LoggingConfigurable):
         # process_code opened kernels, so close them here
         self._km.shutdown_all()
         # workaround for https://github.com/ipython/ipython/issues/8007
+        # FIXME: remove if IPython >3.0 is in require
         self._km._kernels.clear()
         self._kernels = {}
         return output

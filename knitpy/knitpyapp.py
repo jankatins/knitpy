@@ -63,7 +63,7 @@ knitpy_aliases.update({
     'keep-md': 'Knitpy.keep_md',
     'kernel-debug': 'Knitpy.kernel_debug',
     'timeout' : 'Knitpy.timeout',
-    'output-debug': 'MarkdownOutputDocument.output_debug',
+    'output-debug': 'TemporaryOutputDocument.output_debug',
 })
 
 knitpy_flags = {}
@@ -83,7 +83,7 @@ knitpy_flags.update({
         "send kernel messages to debug log (implies log-level=DEBUG)"
     ),
     'output-debug' : (
-        {'MarkdownOutputDocument': {'output_debug': True},
+        {'TemporaryOutputDocument': {'output_debug': True},
          "KnitpyApp":{"log_level":logging.DEBUG}},
         "send output to debug log (implies log-level=DEBUG)"
     )
@@ -104,7 +104,7 @@ class KnitpyApp(BaseIPythonApplication):
         return logging.INFO
 
     def _classes_default(self):
-        classes = [KnitpyApp, Knitpy, TemporaryOutputDocument, ProfileDir, ]
+        classes = [KnitpyApp, Knitpy, TemporaryOutputDocument, ProfileDir]
         # TODO: engines should be added here
         return classes
 

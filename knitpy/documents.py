@@ -73,6 +73,7 @@ class FinalOutputConfiguration(LoggingConfigurable):
         help="""The accepted image formats."""
     )
 
+    # This is atomatically filled from accepted_image_formats
     accepted_image_mimetypes = List(
         config=False,
         default_value=[IMAGE_FILEEXTENSION_TO_MIMETYPE[ifmt] for ifmt in ['png', 'jpg', 'svg']]
@@ -141,6 +142,14 @@ class TemporaryOutputDocument(LoggingConfigurable):
         self._fileoutputs = fileoutputs
         self.export_config = export_config
         self._output = []
+        # Init the caching system (class variables cache the first output of a former conversion
+        # in future runs)
+        self._last_content = None
+        self._cache_text = []
+        self._cache_code = []
+        self._cache_code_language = None
+        self._cache_output = []
+
 
     @property
     def outputdir(self):
@@ -165,12 +174,6 @@ class TemporaryOutputDocument(LoggingConfigurable):
 
     # The caching system is needed to make fusing together same "type" of content possible
     # -> code inputs without output should go to the same block
-    _last_content = None
-    _cache_text = []
-    _cache_code = []
-    _cache_code_language = None
-    _cache_output = []
-
     def flush(self):
         if self.output_debug:
             self.log.debug("Flushing caches in output.")
@@ -203,7 +206,11 @@ class TemporaryOutputDocument(LoggingConfigurable):
             content = [u"%s" % content]
 
         if self.output_debug:
-            self.log.debug("Adding '%s': %s", content_type, content)
+            if content_type == CODE:
+                _type = "%s (%s)" % (content_type, self._cache_code_language)
+            else:
+                _type = content_type
+            self.log.debug("Adding '%s': %s", _type, content)
 
         if content_type != self._last_content:
             self.flush()
@@ -288,8 +295,12 @@ class TemporaryOutputDocument(LoggingConfigurable):
         if not MARKUP_FORMAT_CONVERTER[mimetype] in [to_format,
                                                      self.export_config.pandoc_export_format]:
             if "<table" in mimedata:
-                raise KnitpyOutputException("pandoc can't convert html tables to markdown, "
-                                            "skipping...")
+                # There is a bug in pandoc <=1.13.2, where th in normal tr is triggers "only
+                # text" conversion.
+                msg = "Trying to fix tables for conversion with pandoc (bug in pandoc <=1.13.2)."
+                self.log.debug(msg)
+                mimedata = self._fix_html_tables_old_pandoc(mimedata)
+
             try:
                 self.log.debug("Converting markup of type '%s' to '%s' via pandoc...",
                                mimetype, to_format)
@@ -307,6 +318,42 @@ class TemporaryOutputDocument(LoggingConfigurable):
         self.add_asis("\n")
         self.add_asis(mimedata)
         self.add_asis("\n")
+
+    def _fix_html_tables_old_pandoc(self, htmlstring):
+        """
+        Fix html tables, so that they are recognized by pandoc
+
+        pandoc in <=1.13.2 converts tables with '<th>' and <td> to plain text (each cell one
+        paragraph. Remove all <th> in later rows (tbody) by replacing it with <td>. This is
+        close to the same solution as taken by pandoc in 1.13.3 and later.
+
+        See also: https://github.com/jgm/pandoc/issues/2015
+        """
+        result = []
+        pos = 0
+        re_tables = re.compile(r"<table.*</table>", re.DOTALL)
+        re_tbody = re.compile(r"<tbody.*</tbody>", re.DOTALL)
+        tables = re_tables.finditer(htmlstring)
+        for table in tables:
+            # process the html before the match
+            result.append(htmlstring[pos:table.start()])
+            # now the table itself
+            table_html = htmlstring[table.start():table.end()]
+            tbody = re_tbody.search(table_html)
+            if not tbody is None:
+                result.append(table_html[0:tbody.start()])
+                tbody_html = table_html[tbody.start():tbody.end()]
+                tbody_html = tbody_html.replace("<th","<td")
+                tbody_html = tbody_html.replace("</th>", "</td>")
+                result.append(tbody_html)
+                result.append(table_html[tbody.end():])
+            else:
+                result.append(table_html)
+            pos = table.end()
+        result.append(htmlstring[pos:])
+
+        return "".join(result)
+
 
 
     def add_execution_error(self, error, details=""):
