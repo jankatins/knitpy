@@ -119,9 +119,14 @@ class Knitpy(LoggingConfigurable):
             self._outputs[config["name"]] = fod
             self._outputs[config["alias"]] = fod
 
-    def parse_document(self,filename):
-        f = codecs.open(filename, 'r', 'UTF-8')
-        doc = f.read()
+    def parse_document(self,input):
+        if os.path.exists(input):
+            filename = input
+            f = codecs.open(filename, 'r', 'UTF-8')
+            doc = f.read()
+        else:
+            doc = input
+            filename = "anonymous_input"
 
         # the yaml can stay in the doc, pandoc will remove '---' blocks
         # pandoc will also do it's own interpretation and use title/author and so on...
@@ -582,9 +587,42 @@ class Knitpy(LoggingConfigurable):
         return self._kernels[kernel_name]
 
 
+    def get_output_format(self, fmt_name, config=None):
+        self._ensure_valid_output(fmt_name)
+        fod = self._outputs.get(fmt_name).copy()
+        # self.log.info("%s: %s", fmt_name, config)
+        if not config:
+            pass
+        elif isinstance(config, dict):
+            fod.update(**config)
+        elif config == "default":
+            # html_document: default
+            pass
+        else:
+            self.log.error("Unknown config for document '%s': '%s'. Ignored...",
+                           fmt_name, config)
+        return fod
+
+    def _knit(self, input, outputdir_name, final_format="html", config=None):
+        """Internal function to aid testing"""
+
+
+        parsed, metadata = self.parse_document(input) # sets kpydoc.parsed and
+        final_format = self.get_output_format(final_format, config=config)
+
+        md_temp = TemporaryOutputDocument(fileoutputs=outputdir_name,
+                                          export_config=final_format,
+                                          log=self.log, parent=self)
+
+        # get the temporary md file
+        self.convert(parsed, md_temp)
+
+        return md_temp.content
+
+
     def render(self, filename, output=None):
         """
-        Convert the filename
+        Convert the filename to the given output format(s)
         """
         # Export each documents
         conversion_success = 0
@@ -612,8 +650,7 @@ class Knitpy(LoggingConfigurable):
         outputdir_name = os.path.splitext(basename)[0] + "_files"
 
         # parse the input document
-        parsed, metadata = self.parse_document(filename) # sets kpydoc.parsed and
-        # kpydoc.metadata
+        parsed, metadata = self.parse_document(filename)
 
         # get the output formats
         # order: kwarg overwrites default overwrites document
@@ -628,17 +665,7 @@ class Knitpy(LoggingConfigurable):
             else:
                 output_formats = []
                 for fmt_name, config in iteritems(outputs):
-                    self._ensure_valid_output(fmt_name)
-                    fod = self._outputs.get(fmt_name).copy()
-                    # self.log.info("%s: %s", fmt_name, config)
-                    if isinstance(config, dict):
-                        fod.update(**config)
-                    elif config == "default":
-                        # html_document: default
-                        pass
-                    else:
-                        self.log.error("Unknown config for document '%s': '%s'. Ignored...",
-                                      fmt_name, config)
+                    fod = self.get_output_format(fmt_name, config)
                     output_formats.append(fod)
                 self.log.debug("Converting to all specified output formats: %s" %
                                [fmt.name for fmt in output_formats])
