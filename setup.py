@@ -1,7 +1,10 @@
 from setuptools import setup
 
-from knitpy.pandoc import pandoc
-long_desc = pandoc(open('README.md').read(), fmt="markdown", to="rst")
+try:
+    from pypandoc import convert
+    long_desc = convert(open('README.md').read(), to="rst", format="markdown")
+except:
+    long_desc = 'knitpy - Elegant, flexible and fast dynamic report generation with python'
 
 setup(
     name='knitpy',
