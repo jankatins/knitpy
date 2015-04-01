@@ -1,0 +1,10 @@
+# Invalid Code
+
+```{python}
+"text without a closing quote...
+```
+
+```{python}
+"text without a closing quote...
+"More text without a closing quote...
+```

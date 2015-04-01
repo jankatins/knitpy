@@ -1,0 +1,11 @@
+# echo code chunk option
+
+```{python echo=False}
+print("code not shown above and this is in one block")
+1+1
+```
+
+```{python echo=True}
+print("code shown above and in multiple blocks")
+1+1
+```
