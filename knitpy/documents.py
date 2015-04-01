@@ -127,13 +127,13 @@ class TemporaryOutputDocument(LoggingConfigurable):
     export_config = Instance(klass=FinalOutputConfiguration, help="Final output document configuration")
 
 
-    plot_mimetypes = List(default_value=IMAGE_MIMETYPE_TO_FILEEXTENSION.keys(), allow_none=False,
-                          config=True,
+    plot_mimetypes = List(default_value=list(IMAGE_MIMETYPE_TO_FILEEXTENSION.keys()),
+                          allow_none=False, config=True,
                           help="Mimetypes, which should be handled as plots.")
 
-    markup_mimetypes = List(default_value=MARKUP_FORMAT_CONVERTER.keys(), allow_none=False,
-                          config=True,
-                          help="Mimetypes, which should be handled as markeduped text")
+    markup_mimetypes = List(default_value=list(MARKUP_FORMAT_CONVERTER.keys()),
+                            allow_none=False, config=True,
+                            help="Mimetypes, which should be handled as markeduped text")
 
     context = Instance(klass="knitpy.knitpy.ExecutionContext", config=False, allow_none=True)
 
