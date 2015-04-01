@@ -28,7 +28,7 @@ are (aem... can potentially be) supported.
 * uses the IPython display framework, so rich output for objects implementing `_repr_html_()` or 
   `_repr_markdown_()`. Mimetypes not understood by the final output format are automatically 
   converted via pandoc.
-* config files: generate a empty one with `knitpy --init --profile-dir=.`
+* config files: generate an empty one with `knitpy --init --profile-dir=.`
 * using it from python (-> your app/ ipython notebook): 
   `import knitpy; knitpy.render(filename.pymd, output="html")` will convert `filename.pymd`
   to `filename.html`. `output=all` will convert to all document types (as specified in the 
@@ -65,6 +65,9 @@ are (aem... can potentially be) supported.
 * implement more kernel engines (R...) and make it possible to supply/change ones 
   (for installed kernels for python2/3 or coda environments)
 * implement a nice default html template
+  -  Try https://github.com/timtylin/scholdoc-templates
+* implement "code tidying"
+  - maybe use https://github.com/google/yapf?
 * use metadata in keep_md output (like rmarkdown does...
   - should output `#<title>\n<author>\n<date>` before the rest
   - remove the first yaml block, but keep everything else...
