@@ -52,13 +52,11 @@ are (aem... can potentially be) supported.
   - ...
 * more arguments for code blocks
 * more output formats? -> make output format configurable
-* unittests...
-  - should probably be done by a simple dir + textfiles ala test_input.pymd, test_output.md
+* more unit-/outputtests...
   - codeblocks + inline
   - yaml
   - errors
   - pandoc caller (via mocks?)
-* travis...
 * Documentation
   - what works? what is not supported?
   - differences to rmarkdown / knitr?
