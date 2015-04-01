@@ -8,7 +8,7 @@ except:
 
 setup(
     name='knitpy',
-    version='0.1.0',
+    version='0.1.1',
     description='Elegant, flexible and fast dynamic report generation with python',
     long_description=long_desc,
     author='Jan Schulz',
@@ -38,6 +38,7 @@ setup(
     },
     install_requires = [
         'IPython>=3.0',
+        'pyzmq>=13',
         'pypandoc>=0.9.4',
         'pyyaml',
     ]
