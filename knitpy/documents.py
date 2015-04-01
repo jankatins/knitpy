@@ -116,7 +116,7 @@ class TemporaryOutputDocument(LoggingConfigurable):
         help="""Whether to print outputs to the (debug) log""")
     # TODO: put loglevel to debug of this is True...
 
-    code_startmarker = Unicode("``` {}", config=True,
+    code_startmarker = Unicode("```{}", config=True,
                                help="Start of a code block, with language placeholder and "
                                     "without linefeed")
     code_endmarker = Unicode("```", config=True, help="end of a code block, without linefeed")
@@ -127,13 +127,13 @@ class TemporaryOutputDocument(LoggingConfigurable):
     export_config = Instance(klass=FinalOutputConfiguration, help="Final output document configuration")
 
 
-    plot_mimetypes = List(default_value=IMAGE_MIMETYPE_TO_FILEEXTENSION.keys(), allow_none=False,
-                          config=True,
+    plot_mimetypes = List(default_value=list(IMAGE_MIMETYPE_TO_FILEEXTENSION.keys()),
+                          allow_none=False, config=True,
                           help="Mimetypes, which should be handled as plots.")
 
-    markup_mimetypes = List(default_value=MARKUP_FORMAT_CONVERTER.keys(), allow_none=False,
-                          config=True,
-                          help="Mimetypes, which should be handled as markeduped text")
+    markup_mimetypes = List(default_value=list(MARKUP_FORMAT_CONVERTER.keys()),
+                            allow_none=False, config=True,
+                            help="Mimetypes, which should be handled as markeduped text")
 
     context = Instance(klass="knitpy.knitpy.ExecutionContext", config=False, allow_none=True)
 
@@ -214,9 +214,14 @@ class TemporaryOutputDocument(LoggingConfigurable):
 
         if content_type != self._last_content:
             self.flush()
-            # make sure there is a newline after befor ethe next differently formatted part,
+            # make sure there is a newline after before the next differently formatted part,
             # so that pandoc doesn't get confused...
-            self._output.append("\n")
+            if self._output:
+                # only add such a line if we are between our own generated content, i.e. between
+                # code and output or output and new code
+                if ((content_type, self._last_content) == (CODE, OUTPUT) or
+                    (content_type, self._last_content) == (OUTPUT, CODE)):
+                    self._output.append("\n")
         if content_type == CODE:
             cache = self._cache_code
             self._last_content = CODE
