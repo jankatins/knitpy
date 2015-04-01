@@ -1,0 +1,14 @@
+# results code chunk option
+
+```{python results="hide"}
+# results are hidden
+1+1
+```
+
+```{python results="markup"}
+1+1
+```
+
+```{python results="asis"}
+print("**This text** will be bold...")
+```

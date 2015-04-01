@@ -231,12 +231,6 @@ class Knitpy(LoggingConfigurable):
 
         args = self._parse_args(raw_args)
 
-        # eval=False means that we don't execute the block at all
-        if "eval" in args:
-            _eval =  args.pop("eval")
-            if _eval is False:
-                return
-
         # for compatibility with knitr, where python is specified via "{r engine='python'}"
         if "engine" in args:
             engine_name = args.pop("engine")
@@ -260,6 +254,16 @@ class Knitpy(LoggingConfigurable):
         # configure the context
         if "echo" in args:
             context.echo = args.pop("echo")
+
+        # eval=False means that we don't execute the block at all
+        if "eval" in args:
+            _eval =  args.pop("eval")
+            if _eval is False:
+                if context.echo:
+                    code = code.replace(os.linesep, "\n").lstrip("\n")
+                    context.output.add_code(code, language=engine.language)
+                return
+
 
         if "results" in args:
             context.results = args.pop("results")
@@ -299,7 +303,8 @@ class Knitpy(LoggingConfigurable):
                 # Either abort execution of the whole file or just retry with the next line?
                 # However this should be handled via a user message
                 self.log.info("Code invalid:\n%s",  lines)
-                context.output.add_execution_error("Code invalid",  lines)
+                context.output.add_code(lines, language=engine.language)
+                context.output.add_execution_error("Code invalid")
                 lines = ""
             else:
                 lines += "\n"
@@ -447,7 +452,7 @@ class Knitpy(LoggingConfigurable):
             type = msg["msg_type"]
             if type == "execute_input":
                 if context.echo:
-                    context.output.add_code(_code(msg[u'content']))
+                    context.output.add_code(_code(msg[u'content']),language=context.engine.language)
             elif type == "stream":
                 # {u'text': u'a\nb\nc\n', u'name': u'stdout'}
                 # TODO: format stdout and stderr differently?

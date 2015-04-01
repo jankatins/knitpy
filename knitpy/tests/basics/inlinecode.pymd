@@ -1,0 +1,5 @@
+# A minimal inline example
+
+We can do math: `1+1=`python 1+1``. Yay, we are happy!
+
+Yes I know the value of pi is `python import math; math.pi`, and 2 times pi is `python 2*math.pi`.

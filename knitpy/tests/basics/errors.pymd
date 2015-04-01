@@ -1,0 +1,16 @@
+# Errors in code
+
+```{python}
+import NoneExistingModule
+```
+
+```{python}
+raise Exception("Message should be shown...")
+```
+
+# And both together in one block
+
+```{python}
+import NoneExistingModule
+raise Exception("Message should be shown...")
+```

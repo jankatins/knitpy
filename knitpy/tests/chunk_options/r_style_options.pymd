@@ -1,0 +1,19 @@
+# r style code chunk option evaluation
+
+```{python echo=FALSE}
+print("No code shown above")
+```
+
+```{python echo=F}
+print("No code shown above")
+```
+
+And now the code is shown...
+
+```{python echo=TRUE}
+1+1
+```
+
+```{python echo=T}
+1+1
+```

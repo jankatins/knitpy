@@ -12,6 +12,7 @@ class BaseKnitpyEngine(LoggingConfigurable):
     name = "<NOT_EXISTANT>"
     kernel_name = "<NOT_EXISTANT>"
     startup_lines = ""
+    language = "<NOT_EXISTANT>" # for syntax highlighting...
 
     @property
     def kernel(self):
@@ -36,6 +37,7 @@ class PythonKnitpyEngine(BaseKnitpyEngine):
     kernel_name = "python"
     startup_lines = "# Bad things happen if tracebacks have ansi escape sequences\n" +\
                     "%colors NoColor\n"
+    language = "python"
 
     def get_plotting_format_code(self, formats):
         valid_formats = ["png", "jpg", "jpeg", "pdf"]

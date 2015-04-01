@@ -1,4 +1,20 @@
-﻿*.py[cod]
+﻿# at first project specific files
+# generated conversion failures
+*.received
+# unfinshed conversion tests
+*.off
+
+# kernel files, which wer enot removed after a crash
+kernel*.json
+
+# manually generated knitpy config file
+knitpy_config.py
+
+# ipython checkpoints/ backup copies
+.ipynb_checkpoints/
+
+# now more or less everything which generally doe snot belong to a repo
+*.py[cod]
 *.pyc
 
 # C extensions

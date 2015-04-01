@@ -1,0 +1,13 @@
+# include code chunk options
+
+Here we have two empty lines, because the ones from markdown are preserved...
+
+```{python include=False}
+have_run = True
+print("## This will show as a real headline")
+```
+
+```{python include=True}
+if have_run == True:
+    print("'have_run==True': ran the codeblock before this one.")
+```

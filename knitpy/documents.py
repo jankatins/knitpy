@@ -124,6 +124,9 @@ class TemporaryOutputDocument(LoggingConfigurable):
                                  help="Start of a output block, without linefeed")
     output_endmarker = Unicode("```", config=True, help="End of a output block, without linefeed")
 
+    error_line = Unicode("**ERROR**: {}", config=True,
+                         help="error message line, with msg placeholder and without linefeed")
+
     export_config = Instance(klass=FinalOutputConfiguration, help="Final output document configuration")
 
 
@@ -174,9 +177,19 @@ class TemporaryOutputDocument(LoggingConfigurable):
 
     # The caching system is needed to make fusing together same "type" of content possible
     # -> code inputs without output should go to the same block
+
+    def _ensure_newline(self):
+        # don't add a newline before any output
+        if not self._output:
+            return
+        if self._output[-1][-1] != "\n":
+            self._output.append("\n")
+
+
     def flush(self):
         if self.output_debug:
             self.log.debug("Flushing caches in output.")
+        self._ensure_newline()
         if self._cache_text:
             self._output.extend(self._cache_text)
             self._cache_text = []
@@ -184,6 +197,7 @@ class TemporaryOutputDocument(LoggingConfigurable):
             self._output.append(self.code_startmarker.format(self._cache_code_language))
             self._output.append("\n")
             self._output.extend(self._cache_code)
+            self._ensure_newline()
             self._output.append(self.code_endmarker)
             self._output.append("\n")
             self._cache_code = []
@@ -192,6 +206,7 @@ class TemporaryOutputDocument(LoggingConfigurable):
             self._output.append(self.output_startmarker)
             self._output.append("\n")
             self._output.extend(self._cache_output)
+            self._ensure_newline()
             self._output.append(self.output_endmarker)
             self._output.append("\n")
             self._cache_output = []
@@ -212,15 +227,15 @@ class TemporaryOutputDocument(LoggingConfigurable):
                 _type = content_type
             self.log.debug("Adding '%s': %s", _type, content)
 
-        if content_type != self._last_content:
+        if self._last_content and (content_type != self._last_content):
             self.flush()
-            # make sure there is a newline after before the next differently formatted part,
-            # so that pandoc doesn't get confused...
             if self._output:
+                # make sure there is a empty line before the next differently formatted part,
+                # so that pandoc doesn't get confused...
                 # only add such a line if we are between our own generated content, i.e. between
                 # code and output or output and new code
-                if ((content_type, self._last_content) == (CODE, OUTPUT) or
-                    (content_type, self._last_content) == (OUTPUT, CODE)):
+                _nl_between = [CODE, OUTPUT, ASIS]
+                if (self._last_content in _nl_between) and (content_type in _nl_between):
                     self._output.append("\n")
         if content_type == CODE:
             cache = self._cache_code
@@ -229,9 +244,9 @@ class TemporaryOutputDocument(LoggingConfigurable):
             cache = self._cache_output
             self._last_content = OUTPUT
         elif content_type == ASIS:
-            # just add it as normal text
+            # Just use text
             cache = self._cache_text
-            self._last_content = TEXT
+            self._last_content = ASIS
         else:
             cache = self._cache_text
             self._last_content = TEXT
@@ -239,7 +254,7 @@ class TemporaryOutputDocument(LoggingConfigurable):
         cache.extend(content)
 
     def add_code(self, code, language="python"):
-        if language != self._cache_code_language:
+        if self._cache_code_language and (language != self._cache_code_language):
             self.flush()
         self._cache_code_language = language
         self._add_to_cache(code, CODE)
@@ -362,7 +377,20 @@ class TemporaryOutputDocument(LoggingConfigurable):
 
 
     def add_execution_error(self, error, details=""):
-        msg = "\n**ERROR**: %s\n\n" % error
+        # adding an error is considered "not normal", so we make sure it is clearly visible
+        self.flush()
+        # Set this to None, so no newline is added by accident. We will handle newlines after
+        # the error in this code
+        self._last_content = None
+        # make sure there is a empty line before and after the error message
+        self._ensure_newline()
+        self._output.append("\n")
+        self._output.append(self.error_line.format(error))
+        self._output.append("\n\n")
         if details:
-            msg += "```\n%s\n```\n" % details
-        self.add_asis(msg)
+            self._output.append(self.output_startmarker)
+            self._output.append("\n")
+            self._output.append(details)
+            self._ensure_newline()
+            self._output.append(self.output_endmarker)
+            self._output.append("\n\n")
