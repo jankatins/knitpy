@@ -1,0 +1,45 @@
+# http://travis-ci.org/#!/ipython/ipython
+language: python
+
+python:
+    - 3.4
+    - 2.7
+
+env:
+  global:
+    - PATH=$TRAVIS_BUILD_DIR/pandoc:$PATH
+
+install:
+  - sudo apt-get update
+  # You may want to periodically update this, although the conda update
+  # conda line below will keep everything up-to-date.  We do this
+  # conditionally because it saves us some downloading if the version is
+  # the same.
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      wget http://repo.continuum.io/miniconda/Miniconda-3.4.2-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Linux-x86_64.sh -O miniconda.sh;
+    fi
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+
+  # install our packages
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pip pyyaml matplotlib "ipython>=3.0" nose pyzmq
+  - source activate test-environment
+
+  # pandoc...
+  - 'wget https://7de4dfdec62155b49b44-d726a73613a1989d29b147f20996e7c1.ssl.cf2.rackcdn.com/pandoc-1.12.3-linux-debian-x86_64.zip && unzip pandoc-1.12.3-linux-debian-x86_64.zip;'
+  - export PATH=$TRAVIS_BUILD_DIR/pandoc:$PATH
+  - pip install pypandoc --use-mirrors
+
+  # Useful for debugging any issues with conda
+  - conda info -a
+  - conda list
+
+  #- python setup.py install
+
+script:
+  - nosetests knitpy
