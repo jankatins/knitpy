@@ -1,11 +1,11 @@
 # r style code chunk option evaluation
 
 ```
-No code shown above
+## No code shown above
 ```
 
 ```
-No code shown above
+## No code shown above
 ```
 
 And now the code is shown...
@@ -15,7 +15,7 @@ And now the code is shown...
 ```
 
 ```
-2
+## 2
 ```
 
 ```python
@@ -23,5 +23,5 @@ And now the code is shown...
 ```
 
 ```
-2
+## 2
 ```

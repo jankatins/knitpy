@@ -1,11 +1,38 @@
 # eval code chunk option
 
+```{python}
+res = 1
+```
+
 ```{python eval=False}
-# This code is shown, but no output!
-1+1
+# This code is shown, but no output and the code is not executed!
+res += 1
+res
 ```
 
 ```{python eval=True}
 # Both input code and output is shown
-1+1
+res += 1
+res # is now 2
+```
+
+No output between here...
+
+```{python eval=False, echo=False}
+# Neither the code nor the output is shown
+res += 1
+res
+```
+
+```{python eval=False, include=False}
+# Again, neither the code nor the output is shown
+res += 1
+res
+```
+
+...and here
+
+```{python}
+res # should still be 2
+
 ```

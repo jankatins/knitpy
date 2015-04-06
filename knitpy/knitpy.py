@@ -276,6 +276,9 @@ class Knitpy(LoggingConfigurable):
         else:
             context.chunk_label = u"unnamed-chunk-%s" % context.chunk_number
 
+        if "comment" in args:
+            context.comment = args.pop("comment")
+
         if args:
             self.log.debug("Found unhandled args: %s", args)
 
@@ -325,22 +328,28 @@ class Knitpy(LoggingConfigurable):
         args = {}
         if raw_args.strip() == "":
             return args
-        # The first is special as that can be the name of the chunk
-        first = True
+
         converter = {
             "True":True,
             "False":False,
+            "None":None,
             "T":True, # Rs True/False
             "F":False,
             "TRUE":True,
             "FALSE":False,
+            # treat Rs NA as None, probably overkill to look for float("NA")
+            "NA":None,
+            "NULL":None,
         }
+
+        # The first is special as that can be the name of the chunk
+        first = True
         for arg in raw_args.split(","):
             arg = arg.strip()
             if not "=" in arg:
                 if not first:
                     raise ParseException("Malformed options for code chunk: '%s' in '%s'" % (
-                        arg,raw_args))
+                        arg, raw_args))
                 args["chunk_label"] = arg
                 continue
             first = False
@@ -765,6 +774,10 @@ class ExecutionContext(LoggingConfigurable):
     include = Bool(True, config=False, help="If False, knitpy will will run the chunk but not "
                                           "include the chunk in the final document.")
 
+    comment = Unicode(default_value="##", config=False, allow_none=True,
+                      help="Prefix which is added to all (text) output; None or empty string will "
+                           "result in no prefix")
+
     mode = CaselessStrEnum(default_value=None, values=["inline", "block"],
                                  allow_none=True, config=False, help="current mode: inline or "
                                                                      "block")
@@ -782,8 +795,9 @@ class ExecutionContext(LoggingConfigurable):
         self.chunk_number += 1
 
     def execution_finished(self):
+        self.output.flush()
         reset_needed = ["engine", "mode"
-                        "chunk_label",
+                        "chunk_label", "comment",
                         "include", "echo",  "include", "results"]
         for name in self.trait_names():
             if name in reset_needed:

@@ -4,6 +4,7 @@ import os
 import tempfile
 import re
 from collections import OrderedDict
+
 from pypandoc import convert as pandoc
 
 # Basic things from IPython
@@ -108,8 +109,6 @@ class FinalOutputConfiguration(LoggingConfigurable):
         new_fod = type(self)(**config)
         return new_fod
 
-
-
 class TemporaryOutputDocument(LoggingConfigurable):
 
     output_debug = Bool(False, config=True,
@@ -153,7 +152,6 @@ class TemporaryOutputDocument(LoggingConfigurable):
         self._cache_code_language = None
         self._cache_output = []
 
-
     @property
     def outputdir(self):
         if not os.path.isdir(self._fileoutputs):
@@ -193,11 +191,11 @@ class TemporaryOutputDocument(LoggingConfigurable):
     def flush(self):
         if self.output_debug:
             self.log.debug("Flushing caches in output.")
-        self._ensure_newline()
         if self._cache_text:
             self._output.extend(self._cache_text)
             self._cache_text = []
         if self._cache_code:
+            self._ensure_newline()
             self._output.append(self.code_startmarker.format(self._cache_code_language))
             self._output.append("\n")
             self._output.extend(self._cache_code)
@@ -207,10 +205,20 @@ class TemporaryOutputDocument(LoggingConfigurable):
             self._cache_code = []
             self._cache_code_language = None
         if self._cache_output:
+            self._ensure_newline()
             self._output.append(self.output_startmarker)
             self._output.append("\n")
-            self._output.extend(self._cache_output)
-            self._ensure_newline()
+            comment = self.context.comment
+            if comment:
+                comment = str(comment) + " "
+                outputs = "".join(self._cache_output)
+                outputs = outputs[:-1] if outputs[-1] == "\n" else outputs
+                outputs = outputs.split("\n")
+                outputs = [comment + line + "\n" for line in outputs]
+                self._output.extend(outputs)
+            else:
+                self._output.extend(self._cache_output)
+                self._ensure_newline()
             self._output.append(self.output_endmarker)
             self._output.append("\n")
             self._cache_output = []
