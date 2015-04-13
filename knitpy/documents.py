@@ -182,7 +182,7 @@ class TemporaryOutputDocument(LoggingConfigurable):
         # don't add a newline before any output
         if not self._output:
             return
-        if self._output[-1][-1] != "\n":
+        if self._output[-1] != "\n":
             self._output.append("\n")
 
 
