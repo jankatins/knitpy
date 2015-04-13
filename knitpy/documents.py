@@ -182,7 +182,11 @@ class TemporaryOutputDocument(LoggingConfigurable):
         # don't add a newline before any output
         if not self._output:
             return
-        if self._output[-1][-1] != "\n":
+        last_content = self._output[-1]
+        while last_content == "":
+            del self._output[-1]
+            last_content = self._output[-1]
+        if last_content[-1] != "\n":
             self._output.append("\n")
 
 
@@ -219,6 +223,9 @@ class TemporaryOutputDocument(LoggingConfigurable):
             pass
         else:
             content = [u"%s" % content]
+
+        # remove empty lines, which causes errors in _ensure_newline
+        content = [line for line in content if line != ""]
 
         if self.output_debug:
             if content_type == CODE:
