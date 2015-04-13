@@ -39,32 +39,44 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <h2>Examples</h2>
 <p>Here are some examples:</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="dt">print</span>(<span class="st">&quot;Execute some code chunk and show the result&quot;</span>)</code></pre>
-<pre><code>Execute some code chunk and show the result</code></pre>
+<pre><code>## Execute some code chunk and show the result</code></pre>
 <p>Codechunks which contain lines without output (e.g. assign the result or comments) will be shown in the same code block:</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="co"># A comment</span>
 text = <span class="st">&quot;All code in the same code block until some output is produced...&quot;</span>
 more_text = <span class="st">&quot;...and some more.&quot;</span>
 <span class="dt">print</span>(text)</code></pre>
-<pre><code>All code in the same code block until some output is produced...</code></pre>
+<pre><code>## All code in the same code block until some output is produced...</code></pre>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="dt">print</span>(more_text)</code></pre>
-<pre><code>...and some more.</code></pre>
+<pre><code>## ...and some more.</code></pre>
 <div id="code-chunk-arguments" class="section level3">
 <h3>Code chunk arguments</h3>
 <p>You can use different arguments in the codechunk declaration. Using <code>echo=False</code> will not show the code but only the result.</p>
-<pre><code>Only the output will be visible as `echo=False`</code></pre>
+<pre><code>## Only the output will be visible as `echo=False`</code></pre>
 <p>The next paragraphs explores the code chunk argument <code>results</code>.</p>
 <p>If ‘hide’, knitpy will not display the code’s results in the final document. If ‘hold’, knitpy will delay displaying all output pieces until the end of the chunk. If ‘asis’, knitpy will pass through results without reformatting them (useful if results return raw HTML, etc.)</p>
 <p><code>results='hold'</code> is not yet implemented.</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="dt">print</span>(<span class="st">&quot;Only the input is displayed, not the output&quot;</span>)</code></pre>
-<pre><code>This is formatted as markdown:
-**This text** will be bold...</code></pre>
+<pre><code>## This is formatted as markdown:
+## **This text** will be bold...</code></pre>
 <p><strong>This text</strong> will be bold…</p>
-<p>Using <code>eval=False</code>, one can hide a code chunk completely: it won’t be executed and it won’t be shown between this text …</p>
-<p>… and this text here!</p>
+<p><strong>Note</strong>: with python code it is recommended to use the IPython/Jupyter display system and an appropriate wrapper (see below) to display such output and not <code>results=&quot;asis&quot;</code>. This makes it possible to convert such output if the output can’t be included in the final format.</p>
 <p>You can also not show codeblocks at all, but they will be run (not included codeblock sets <code>have_run = True</code>):</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="kw">if</span> have_run == <span class="ot">True</span>:
     <span class="dt">print</span>(<span class="st">&quot;'have_run==True': ran the codeblock before this one.&quot;</span>)</code></pre>
-<pre><code>'have_run==True': ran the codeblock before this one.</code></pre>
+<pre><code>## 'have_run==True': ran the codeblock before this one.</code></pre>
+<p>Using <code>eval=False</code>, one can prevent the evaluation of the codechunk</p>
+<pre class="sourceCode python"><code class="sourceCode python">x = <span class="dv">1</span></code></pre>
+<pre class="sourceCode python"><code class="sourceCode python">x += <span class="dv">1</span> <span class="co"># this is not executed as eval is False</span></code></pre>
+<pre class="sourceCode python"><code class="sourceCode python">x <span class="co"># still 1</span></code></pre>
+<pre><code>## 1</code></pre>
+<p>To remove/hide a codechunk completely, i.e. neither execute it nor show the code, you can use both <code>eval=False, include=False</code>: nothing will be shown between this text …</p>
+<pre class="sourceCode python"><code class="sourceCode python">x += <span class="dv">1</span> <span class="co"># this is not executed and not even shown</span></code></pre>
+<p>… and this text here!</p>
+<p>The prefix in front of text output (per default <code>##</code>) can be changed via the <code>comment</code> chunk option to a different string or completely removed by setting it to a empty string <code>&quot;&quot;</code>or None:</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="dt">print</span>(<span class="st">&quot;Text output&quot;</span>)</code></pre>
+<pre><code># result: Text output</code></pre>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="dt">print</span>(<span class="st">&quot;Text output&quot;</span>)</code></pre>
+<pre><code>Text output</code></pre>
 </div>
 <div id="inline-code" class="section level3">
 <h3>Inline code</h3>
@@ -79,7 +91,7 @@ more_text = <span class="st">&quot;...and some more.&quot;</span>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="ch">from</span> IPython.core.display <span class="ch">import</span> display, HTML
 display(HTML(<span class="st">&quot;&lt;strong&gt;strong text&lt;/strong&gt;&quot;</span>))</code></pre>
 <p><strong>strong text</strong></p>
-<p>It even handles pandas.DataFrames (be aware that not all formatting can be converted into all output formats):</p>
+<p>It even handles <code>pandas.DataFrames</code> (be aware that not all formatting can be converted into all output formats):</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> pandas <span class="ch">as</span> pd
 pd.set_option(<span class="st">&quot;display.width&quot;</span>, <span class="dv">200</span>) 
 s = <span class="st">&quot;&quot;&quot;This is longer text&quot;&quot;&quot;</span>
@@ -161,51 +173,51 @@ e
 <p><code>pandas.DataFrame</code> can be represented as <code>text/plain</code> or <code>text/html</code>, but will default to the html version. To force plain text, use either <code>print(df)</code> or set the right <code>pandas</code> option:</p>
 <pre class="sourceCode python"><code class="sourceCode python">pd.set_option(<span class="st">&quot;display.notebook_repr_html&quot;</span>, <span class="ot">False</span>)
 df</code></pre>
-<pre><code>   a                    b
-0  1  This is longer text
-1  2                    b
-2  3                    c
-3  4  This is longer text
-4  5                    e</code></pre>
+<pre><code>##    a                    b
+## 0  1  This is longer text
+## 1  2                    b
+## 2  3                    c
+## 3  4  This is longer text
+## 4  5                    e</code></pre>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="co"># set back the display</span>
 pd.set_option(<span class="st">&quot;display.notebook_repr_html&quot;</span>, <span class="ot">True</span>)</code></pre>
 <p>You can also use package like <a href="https://bitbucket.org/astanin/python-tabulate">tabulate</a> together with <code>results=&quot;asis&quot;</code> or by wrapping it with the appropriate display class:</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="ch">from</span> tabulate <span class="ch">import</span> tabulate
-<span class="ch">from</span> IPython.core.display <span class="ch">import</span> display, Markdown
+<span class="ch">from</span> IPython.core.display <span class="ch">import</span> Markdown
 <span class="co"># either print and use `results=&quot;asis&quot;`</span>
 <span class="dt">print</span>(tabulate(df, <span class="dt">list</span>(df.columns), tablefmt=<span class="st">&quot;simple&quot;</span>))</code></pre>
 <table>
 <thead>
 <tr class="header">
 <th align="left"></th>
-<th align="right">a</th>
+<th align="left">a</th>
 <th align="left">b</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td align="left">0</td>
-<td align="right">1</td>
+<td align="left">1</td>
 <td align="left">This is longer text</td>
 </tr>
 <tr class="even">
 <td align="left">1</td>
-<td align="right">2</td>
+<td align="left">2</td>
 <td align="left">b</td>
 </tr>
 <tr class="odd">
 <td align="left">2</td>
-<td align="right">3</td>
+<td align="left">3</td>
 <td align="left">c</td>
 </tr>
 <tr class="even">
 <td align="left">3</td>
-<td align="right">4</td>
+<td align="left">4</td>
 <td align="left">This is longer text</td>
 </tr>
 <tr class="odd">
 <td align="left">4</td>
-<td align="right">5</td>
+<td align="left">5</td>
 <td align="left">e</td>
 </tr>
 </tbody>
@@ -216,39 +228,39 @@ Markdown(tabulate(df, <span class="dt">list</span>(df.columns), tablefmt=<span c
 <thead>
 <tr class="header">
 <th align="left"></th>
-<th align="right">a</th>
+<th align="left">a</th>
 <th align="left">b</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td align="left">0</td>
-<td align="right">1</td>
+<td align="left">1</td>
 <td align="left">This is longer text</td>
 </tr>
 <tr class="even">
 <td align="left">1</td>
-<td align="right">2</td>
+<td align="left">2</td>
 <td align="left">b</td>
 </tr>
 <tr class="odd">
 <td align="left">2</td>
-<td align="right">3</td>
+<td align="left">3</td>
 <td align="left">c</td>
 </tr>
 <tr class="even">
 <td align="left">3</td>
-<td align="right">4</td>
+<td align="left">4</td>
 <td align="left">This is longer text</td>
 </tr>
 <tr class="odd">
 <td align="left">4</td>
-<td align="right">5</td>
+<td align="left">5</td>
 <td align="left">e</td>
 </tr>
 </tbody>
 </table>
-<p>Note that the second version is preferred, as this marks the output with the right mimetype and therefore can be converted—if that’s needed—to something which the output format understands!</p>
+<p>Note that the second version (wrapping it in <code>Markdown</code>) is preferred, as this marks the output with the right mimetype and therefore can be converted—if that’s needed—to something which the output format understands!</p>
 <p>Unfortunately, html tables have to be tweaked for the final output format as e.g. too width tables spill over the page margin in PDF.</p>
 </div>
 <div id="error-handling" class="section level3">
@@ -258,13 +270,13 @@ Markdown(tabulate(df, <span class="dt">list</span>(df.columns), tablefmt=<span c
 <span class="dt">print</span>(sys.not_available)</code></pre>
 <p><strong>ERROR</strong>: AttributeError: ‘module’ object has no attribute ‘not_available’</p>
 <pre><code>AttributeError                            Traceback (most recent call last)
-&lt;ipython-input-33-a5971246c0f7&gt; in &lt;module&gt;()
+&lt;ipython-input-37-a5971246c0f7&gt; in &lt;module&gt;()
 ----&gt; 1 print(sys.not_available)
 
 AttributeError: 'module' object has no attribute 'not_available'</code></pre>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="kw">for</span> x in []:
+<span class="dt">print</span>(<span class="st">&quot;No indention...&quot;</span>)</code></pre>
 <p><strong>ERROR</strong>: Code invalid</p>
-<pre><code>for x in []:
-print(&quot;No indention...&quot;)</code></pre>
 </div>
 </div>
 </body>
