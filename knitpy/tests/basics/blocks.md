@@ -7,7 +7,7 @@ A _paragraph_ here. A code chunk below (remember the three backticks):
 ```
 
 ```
-2
+## 2
 ```
 
 ```python
@@ -15,5 +15,5 @@ A _paragraph_ here. A code chunk below (remember the three backticks):
 ```
 
 ```
-5.551115123125783e-17
+## 5.551115123125783e-17
 ```

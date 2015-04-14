@@ -63,21 +63,16 @@ print("This is formatted as markdown:\n**This text** will be bold...")
 print("**This text** will be bold...")
 ```
 
-Using `eval=False`, one can hide a code chunk completely: it won't be executed and it won't be
-shown between this text ...
-
-```{python eval=False}
-print("**This text** will be bold...")
-```
-
-... and this text here!
+**Note**: with python code it is recommended to use the IPython/Jupyter display system and an 
+appropriate wrapper (see below) to display such output and not `results="asis"`. This makes it 
+possible to convert such output if the output can't be included in the final format.
 
 You can also not show codeblocks at all, but they will be run (not included codeblock sets
 `have_run = True`):
 
 ```{python include=False}
 have_run = True
-print("## This will show as a real headline")
+print("This will not be shown, as include is False")
 ```
 
 ```{python include=True}
@@ -85,10 +80,44 @@ if have_run == True:
     print("'have_run==True': ran the codeblock before this one.")
 ```
 
+Using `eval=False`, one can prevent the evaluation of the codechunk
+
+```{python}
+x = 1
+```
+
+```{python eval=False}
+x += 1 # this is not executed as eval is False
+```
+
+```{python}
+x # still 1
+```
+
+
+To remove/hide a codechunk completely, i.e. neither execute it nor show the code, you can use both `eval=False, include=False`: nothing will be
+shown between this text ...
+
+```{python eval=False, include=False}
+x += 1 # this is not executed and not even shown
+```
+
+... and this text here!
+
+The prefix in front of text output (per default `##`) can be changed via the `comment` chunk
+option to a different string or completely removed by setting it to a empty string `""`or None:
+
+```{python comment="# result:"}
+print("Text output")
+```
+
+```{python comment=""}
+print("Text output")
+```
+
 ### Inline code
 
 You can also include code inline: "m=`python 1+1`" (expected: "m=2") 
-
 
 ### IPython / Jupyter display framework
 
@@ -117,7 +146,7 @@ from IPython.core.display import display, HTML
 display(HTML("<strong>strong text</strong>"))
 ```
 
-It even handles pandas.DataFrames (be aware that not all formatting can be converted into all
+It even handles `pandas.DataFrames` (be aware that not all formatting can be converted into all
 output formats):
 
 ```{python}
@@ -143,15 +172,16 @@ together with `results="asis"` or by wrapping it with the appropriate display cl
 
 ```{python results="asis"}
 from tabulate import tabulate
-from IPython.core.display import display, Markdown
+from IPython.core.display import Markdown
 # either print and use `results="asis"`
 print(tabulate(df, list(df.columns), tablefmt="simple"))
 # or use the IPython display framework to publish markdown
 Markdown(tabulate(df, list(df.columns), tablefmt="simple"))
 ```
 
-Note that the second version is preferred, as this marks the output with the right mimetype and
-therefore can be converted---if that's needed---to something which the output format understands!
+Note that the second version (wrapping it in `Markdown`) is preferred, as this marks the output 
+with the right mimetype and therefore can be converted---if that's needed---to something which 
+the output format understands!
 
 Unfortunately, html tables have to be tweaked for the final output format as e.g. too width
 tables spill over the page margin in PDF.

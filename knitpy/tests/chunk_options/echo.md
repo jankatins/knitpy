@@ -1,8 +1,8 @@
 # echo code chunk option
 
 ```
-code not shown above and this is in one block
-2
+## code not shown above and this is in one block
+## 2
 ```
 
 ```python
@@ -10,7 +10,7 @@ print("code shown above and in multiple blocks")
 ```
 
 ```
-code shown above and in multiple blocks
+## code shown above and in multiple blocks
 ```
 
 ```python
@@ -18,5 +18,5 @@ code shown above and in multiple blocks
 ```
 
 ```
-2
+## 2
 ```
