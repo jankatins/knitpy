@@ -648,6 +648,7 @@ class Knitpy(LoggingConfigurable):
 
         # expand $HOME and so on...
         filename = expand_path(filename)
+        filename = os.path.abspath(filename)
         self.log.info("Converting %s..." % filename)
 
         basedir = os.path.dirname(filename)
