@@ -8,3 +8,19 @@
 "text without a closing quote...
 "More text without a closing quote...
 ```
+
+```{python}
+s = ""
+# after
+   # after2
+   print(test)
+```
+
+```{python}
+for i in range(x):
+```
+
+```{python}
+for i in range(x):
+print(i)
+```

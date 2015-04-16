@@ -20,6 +20,7 @@ import os
 import getpass
 import datetime
 import yaml
+import re
 try:
     from queue import Empty  # Py 3
 except ImportError:
@@ -283,8 +284,60 @@ class Knitpy(LoggingConfigurable):
             self.log.debug("Found unhandled args: %s", args)
 
         lines = ''
-        for line in code.split('\n'):
-            lines = lines + line
+        code_lines = code.split('\n')
+        space_re =re.compile(r'^([\s]+)')
+        spaces = []
+
+        # TODO: this whole "merge with the next line" should be rewritten as a generator
+        def loop_continues(line_no):
+            if len(code_lines) <= line_no:
+                return False
+
+            candidate = code_lines[line_no]
+            # comments should be swallowed if a line further down has code in it with the
+            # right number of spaces in front
+            while candidate.strip() == "" or self._all_lines_comments(candidate):
+                line_no +=  1
+                if len(code_lines) <= line_no:
+                    return False
+                candidate = code_lines[line_no]
+            # the next code line must have either the same number of spaces (still in a loop),
+            # or less spaces as in 'spaces' (nested loop) or none (end of loop). If more spaces
+            # are found or different types of spaces, this will result in an error which will be
+            # shown when the code is executed...
+            while spaces:
+                possible_space = spaces[-1]
+                if candidate[:len(possible_space)] == possible_space:
+                    # ok, we are at the "right" level of space
+                    return True
+                # not our "space", so remove it and try the one one nesting above
+                spaces.pop()
+            return False
+        for line_no in range(len(code_lines)):
+            cur_line = code_lines[line_no]
+            lines = lines + cur_line
+            # check if we are in a loop and if so, if the next line also belongs to this loop
+            # this only catches the case where we are *in* a loop and not the loop start (the line
+            #  with a ':' in it. That line is catched by the is_complete call below. nested loops
+            #  are also catched due to the space in front of it
+            m = space_re.match(cur_line)
+            if m:
+                cur_space = m.group(0)
+                spaces.append(cur_space)
+                if loop_continues(line_no +1):
+                    lines += "\n"
+                    continue
+
+            if spaces:
+                # we are in a loop, as spaces has some spaces in it, but the code above didn't find
+                # any spaces in front of the line -> this is the case when loop_continues found a
+                # new codeline from this loop after a comment with different spaces in front of
+                # it or an empty line. This could be such an empty/comment line and we have to
+                # look at the next line as well!
+                if cur_line.strip() == "" or self._all_lines_comments(cur_line):
+                    lines += "\n"
+                    continue
+            # we have a block of code, including all lines of a loop
             msg = engine.kernel.is_complete(lines+"\n\n")
             reply = engine.kernel.get_shell_msg(timeout=self.timeout)
             assert reply['msg_type'] == 'is_complete_reply', str(reply)
@@ -299,6 +352,7 @@ class Knitpy(LoggingConfigurable):
                     # comments should go to to the next code block
                     lines += "\n"
                     continue
+                # run the lines
                 self._run_lines(lines+"\n", context)
                 lines = ""
             elif reply['content']['status'] == 'invalid':
@@ -310,6 +364,7 @@ class Knitpy(LoggingConfigurable):
                 context.output.add_execution_error("Code invalid")
                 lines = ""
             else:
+                # the "incomplete" case: don't run anything wait for the next line
                 lines += "\n"
 
         # This can only happen if the last line is incomplete
