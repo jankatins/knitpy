@@ -1,0 +1,69 @@
+# Loops
+
+Problem here is that the loop + the first line is usually enough to make something valid code
+
+```{python}
+s = ""
+for i in range(10):
+    s += " %s" %i
+s
+```
+
+```{python}
+s = ""
+for i in range(10):
+    j = i
+    s += " %s" %j
+s
+```
+
+```{python}
+s = ""
+for i in range(10):
+   # test
+    j = i
+    # test
+# test
+    # test
+    s += " %s" %j
+s
+```
+
+
+```{python}
+s = ""
+for i in range(10):
+    for j in range(i):
+        s += " %s" %j
+s
+```
+
+```{python}
+s = ""
+for i in range(10):
+    for j in range(i):
+        k = j
+        s += " %s" %k
+s
+```
+
+```{python}
+s = ""
+for i in range(10):
+    for j in range(i):
+        k = j
+        s += " %s" %k
+    s += " loop"
+s
+```
+
+
+```{python}
+ # test
+for i in range(3):
+    # test
+      #test
+    print(i)
+# text
+    print("works")
+```

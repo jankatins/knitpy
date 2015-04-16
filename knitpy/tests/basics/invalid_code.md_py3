@@ -35,7 +35,7 @@ for i in range(x):
 
 ```
 
-**ERROR**: IndentationError: expected an indented block (<ipython-input>, line 2)
+**ERROR**: SyntaxError: unexpected EOF while parsing (<ipython-input>, line 2)
 
 
 ```python

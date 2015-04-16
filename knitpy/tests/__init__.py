@@ -2,6 +2,8 @@
 
 # Copyright (c) Jan Schulz <jasc@gmx.net>
 # Distributed under the terms of the Modified BSD License.
+from __future__ import absolute_import, print_function, unicode_literals
+
 
 import codecs
 import glob
@@ -12,6 +14,8 @@ import unittest
 import re
 
 from knitpy.knitpy import Knitpy
+
+from knitpy.py3compat import PY3
 
 
 def _add_test_cases(cls, foldername):
@@ -45,8 +49,8 @@ def _add_test_cases(cls, foldername):
         # http://math.andrej.com/2009/04/09/pythons-lambda-is-broken/comment-page-1/
         def test_function(self, input_file=input_file, output_file=output_file):
             function(self, input_file, output_file)
-        name ="test_%s_%s" % (foldername, basename)
-        test_function.__name__ = name
+        name = "test_%s_%s" % (foldername, basename)
+        test_function.__name__ = str(name)
         setattr(cls, name, test_function)
 
 
@@ -63,10 +67,21 @@ class AbstractOutputTestCase(unittest.TestCase):
         with codecs.open(input_file, 'r', 'UTF-8') as f:
             input = f.read()
 
+        # some exceptions are different on py2 and py3, so add a way to make both happy...
+        # the version which were used to develop the tests (currently py2) should stay '.md' and
+        # the exception should become '.md_pyX'
+        if PY3:
+            if os.path.exists(output_file+"_py3"):
+                output_file = output_file+"_py3"
+        else:
+            if os.path.exists(output_file+"_py2"):
+                output_file = output_file+"_py2"
+
+        output = self.knitpy._knit(input, tempfile.gettempdir())
+
         if not os.path.exists(output_file):
             _file = output_file+".off"
             with codecs.open(_file, 'w', 'UTF-8') as f:
-                output = self.knitpy._knit(input, tempfile.gettempdir())
                 output = self._re_ipython_id.sub("<ipython-input>", output)
                 output = output.replace(os.linesep, "\n")
                 f.write(output)
@@ -74,7 +89,6 @@ class AbstractOutputTestCase(unittest.TestCase):
 
         with codecs.open(output_file, 'r', 'UTF-8') as f:
             exp = f.read()
-        output = self.knitpy._knit(input, tempfile.gettempdir())
         self.assert_equal_output(exp, output, filename=output_file)
 
     def assert_equal_output(self, expected, received, filename=None):
