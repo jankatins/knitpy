@@ -1,10 +1,11 @@
 __author__ = 'jschulz'
 
-from IPython.utils.py3compat import string_types
+from .py3compat import string_types
 
 class _NA_DEFAULT_CLASS(object):
         pass
 _NA_DEFAULT = _NA_DEFAULT_CLASS()
+
 def get_by_name(dict_like, name, na="<n/a"):
     res = dict_like
     for part in name.split("."):
