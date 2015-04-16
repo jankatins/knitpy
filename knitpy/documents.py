@@ -45,7 +45,10 @@ DEFAULT_FINAL_OUTPUT_FORMATS = [
      "accepted_image_formats": ["png", "svg"]},
     {"name": "pdf_document", "alias": "pdf",
      "pandoc_export_format": "latex", "file_extension": "pdf",
-     "accepted_image_formats": ["pdf"]},
+     "accepted_image_formats": ["pdf", "png"]},
+    {"name": "latex_document", "alias": "latex",
+     "pandoc_export_format": "latex", "file_extension": "tex",
+     "accepted_image_formats": ["pdf", "png"]},
     ]
 VALID_OUTPUT_FORMAT_NAMES = [fmt["name"]  for fmt in DEFAULT_FINAL_OUTPUT_FORMATS] + \
                        [fmt["alias"]  for fmt in DEFAULT_FINAL_OUTPUT_FORMATS]
