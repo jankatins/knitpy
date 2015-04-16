@@ -706,6 +706,12 @@ class Knitpy(LoggingConfigurable):
         filename = os.path.abspath(filename)
         self.log.info("Converting %s..." % filename)
 
+        # no reason to continue past this point if we dont have
+        # a valid file path, so check it here and provide a clear
+        # failure message since this a common mistake
+        if not os.path.exists(filename):
+            raise IOError('File not found: %s' % filename)
+            
         basedir = os.path.dirname(filename)
         basename = os.path.splitext(os.path.basename(filename))[0]
 
