@@ -709,6 +709,12 @@ class Knitpy(LoggingConfigurable):
         basedir = os.path.dirname(filename)
         basename = os.path.splitext(os.path.basename(filename))[0]
 
+        # no reason to continue past this point if we dont have
+        # a valid file path, so check it here and provide a clear
+        # failure message since this a common mistake
+        if not os.path.exists(filename):
+            raise IOError('File not found: %s' % filename)
+
         # It's easier if we just change wd to the dir of the file
         if unicode_type(basedir) != py3compat.getcwd():
             os.chdir(basedir)
