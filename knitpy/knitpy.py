@@ -714,7 +714,8 @@ class Knitpy(LoggingConfigurable):
             
         basedir = os.path.dirname(filename)
         basename = os.path.splitext(os.path.basename(filename))[0]
-
+        
+        
         # It's easier if we just change wd to the dir of the file
         if unicode_type(basedir) != py3compat.getcwd():
             os.chdir(basedir)
@@ -722,77 +723,83 @@ class Knitpy(LoggingConfigurable):
             self.log.info("Changing to working dir: %s" % basedir)
             filename = os.path.basename(filename)
 
-
-        outputdir_name = os.path.splitext(basename)[0] + "_files"
-
-        # parse the input document
-        parsed, metadata = self.parse_document(filename)
-
-        # get the output formats
-        # order: kwarg overwrites default overwrites document
-        output_formats = [self._outputs[self.default_export_format]]
-        if output is None:
-            self.log.debug("Converting to default output format [%s]!" % self.default_export_format)
-        elif output == "all":
-            outputs = metadata.get("output", None)
-            # if nothing is specified, we keep the default
-            if outputs is None:
-                self.log.debug("Did not find any specified output formats: using only default!")
+        try:
+            outputdir_name = os.path.splitext(basename)[0] + "_files"
+    
+            # parse the input document
+            parsed, metadata = self.parse_document(filename)
+    
+            # get the output formats
+            # order: kwarg overwrites default overwrites document
+            output_formats = [self._outputs[self.default_export_format]]
+            if output is None:
+                self.log.debug("Converting to default output format [%s]!" % self.default_export_format)
+            elif output == "all":
+                outputs = metadata.get("output", None)
+                # if nothing is specified, we keep the default
+                if outputs is None:
+                    self.log.debug("Did not find any specified output formats: using only default!")
+                else:
+                    output_formats = []
+                    for fmt_name, config in iteritems(outputs):
+                        fod = self.get_output_format(fmt_name, config)
+                        output_formats.append(fod)
+                    self.log.debug("Converting to all specified output formats: %s" %
+                                   [fmt.name for fmt in output_formats])
             else:
-                output_formats = []
-                for fmt_name, config in iteritems(outputs):
-                    fod = self.get_output_format(fmt_name, config)
-                    output_formats.append(fod)
-                self.log.debug("Converting to all specified output formats: %s" %
-                               [fmt.name for fmt in output_formats])
-        else:
-            self._ensure_valid_output(output)
-            output_formats = [self._outputs[output]]
-
-        for final_format in output_formats:
-            self.log.info("Converting document %s to %s", filename, final_format.name)
-            # TODO: build a proper way to specify final output...
-
-            md_temp = TemporaryOutputDocument(fileoutputs=outputdir_name,
-                                              export_config=final_format,
-                                              log=self.log, parent=self)
-
-            # get the temporary md file
-            self.convert(parsed, md_temp)
-            if final_format.keep_md or self.keep_md:
-                mdfilename = basename+"."+final_format.name+".md"
-                self.log.info("Saving the temporary markdown as '%s'." % mdfilename)
-                # TODO: remove the first yaml metadata block and
-                # put "#<title>\n<author>\n<date>" before the rest
-                with codecs.open(mdfilename, 'w+b','UTF-8') as f:
-                    f.write(md_temp.content)
-
-            # convert the md file to the final filetype
-            input_format = "markdown" \
-                           "+autolink_bare_uris" \
-                           "+ascii_identifiers" \
-                           "+tex_math_single_backslash-implicit_figures" \
-                           "+fenced_code_attributes"
-
-            extra = ["--smart", # typographically correct output (curly quotes, etc)
-                     "--email-obfuscation", "none", #do not obfuscation email names with javascript
-                     "--self-contained", # include img/scripts as data urls
-                     "--standalone", # html with header + footer
-                     "--section-divs",
-                     ]
-
-            outfilename = basename+"." +final_format.file_extension
-
-            # exported is irrelevant, as we pass in a filename
-            exported = pandoc(source=md_temp.content,
-                              to=final_format.pandoc_export_format,
-                              format=input_format,
-                              extra_args=extra,
-                              outputfile=outfilename)
-            self.log.info("Written final output: %s" % outfilename)
-            converted_docs.append(os.path.join(basedir, outfilename))
-        if needs_chdir:
-            os.chdir(orig_cwd)
+                self._ensure_valid_output(output)
+                output_formats = [self._outputs[output]]
+    
+            for final_format in output_formats:
+                self.log.info("Converting document %s to %s", filename, final_format.name)
+                # TODO: build a proper way to specify final output...
+    
+                md_temp = TemporaryOutputDocument(fileoutputs=outputdir_name,
+                                                  export_config=final_format,
+                                                  log=self.log, parent=self)
+    
+                # get the temporary md file
+                self.convert(parsed, md_temp)
+                if final_format.keep_md or self.keep_md:
+                    mdfilename = basename+"."+final_format.name+".md"
+                    self.log.info("Saving the temporary markdown as '%s'." % mdfilename)
+                    # TODO: remove the first yaml metadata block and
+                    # put "#<title>\n<author>\n<date>" before the rest
+                    with codecs.open(mdfilename, 'w+b','UTF-8') as f:
+                        f.write(md_temp.content)
+    
+                # convert the md file to the final filetype
+                input_format = "markdown" \
+                               "+autolink_bare_uris" \
+                               "+ascii_identifiers" \
+                               "+tex_math_single_backslash-implicit_figures" \
+                               "+fenced_code_attributes"
+    
+                extra = ["--smart", # typographically correct output (curly quotes, etc)
+                         "--email-obfuscation", "none", #do not obfuscation email names with javascript
+                         "--self-contained", # include img/scripts as data urls
+                         "--standalone", # html with header + footer
+                         "--section-divs",
+                         ]
+    
+                outfilename = basename+"." +final_format.file_extension
+    
+                # exported is irrelevant, as we pass in a filename
+                exported = pandoc(source=md_temp.content,
+                                  to=final_format.pandoc_export_format,
+                                  format=input_format,
+                                  extra_args=extra,
+                                  outputfile=outfilename)
+                self.log.info("Written final output: %s" % outfilename)
+                converted_docs.append(os.path.join(basedir, outfilename))
+                
+        finally:
+            # it was convenient to change directory to do the conversion
+            # but make sure we put them back regardless of the sucess of the
+            # conversion
+            if needs_chdir:
+                os.chdir(orig_cwd)
+                
         return converted_docs
 
 
