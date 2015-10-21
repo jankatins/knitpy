@@ -5,6 +5,15 @@ import tempfile
 import re
 from collections import OrderedDict
 
+try:
+    #py3
+    from base64 import decodebytes
+except ImportError:
+    # py2
+    from base64 import decodestring as decodebytes
+
+
+
 from pypandoc import convert as pandoc
 
 # Basic things from IPython
@@ -288,8 +297,7 @@ class TemporaryOutputDocument(LoggingConfigurable):
 
     def add_image(self, mimetype, mimedata, title=""):
         try:
-            import base64
-            mimedata = base64.decodebytes(mimedata.encode())
+            mimedata = decodebytes(mimedata.encode())
             # save as a file
             if not self.context is None:
                 filename = u"%s-%s.%s" % (self.context.chunk_label,
