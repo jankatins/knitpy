@@ -62,3 +62,11 @@ nosetests.xml
 
 # Testing
 tmp
+rmd/
+*.ipynb
+
+# examples which do not need to be in the repo (html should be..)
+examples/knitpy_overview_files/figure-docx/
+examples/knitpy_overview_files/figure-pdf/
+examples/knitpy_overview_files/figure-tex/
+examples/knitpy_overview.tex
