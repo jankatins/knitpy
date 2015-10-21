@@ -69,7 +69,7 @@ def is_iterable(obj):
 def is_string(obj):
     return isinstance(obj, string_types)
 
-from IPython.utils.traitlets import TraitType
+from traitlets import TraitType
 import re
 class CRegExpMultiline(TraitType):
     """A casting compiled regular expression trait.

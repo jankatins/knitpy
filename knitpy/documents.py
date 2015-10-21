@@ -8,10 +8,10 @@ from collections import OrderedDict
 from pypandoc import convert as pandoc
 
 # Basic things from IPython
-from IPython.config.configurable import LoggingConfigurable
-from IPython.utils.traitlets import Bool, Unicode, CaselessStrEnum, List, Instance
-from IPython.utils.py3compat import iteritems
+from traitlets.config.configurable import LoggingConfigurable
+from traitlets import Bool, Unicode, CaselessStrEnum, List, Instance
 
+from .py3compat import iteritems
 from .utils import is_iterable, is_string
 
 TEXT, OUTPUT, CODE, ASIS = "text", "output", "code", "asis"
@@ -289,7 +289,7 @@ class TemporaryOutputDocument(LoggingConfigurable):
     def add_image(self, mimetype, mimedata, title=""):
         try:
             import base64
-            mimedata = base64.decodestring(mimedata)
+            mimedata = base64.decodebytes(mimedata.encode())
             # save as a file
             if not self.context is None:
                 filename = u"%s-%s.%s" % (self.context.chunk_label,

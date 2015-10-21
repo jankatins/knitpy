@@ -21,34 +21,17 @@ import logging
 import glob
 import sys
 
-from IPython.core.application import BaseIPythonApplication, base_aliases, base_flags
-from IPython.core.crashhandler import CrashHandler
-from IPython.core.profiledir import ProfileDir
-from IPython.config import catch_config_error
-from IPython.utils.traitlets import (
+# TODO: fix IPython useage...
+from jupyter_core.application import JupyterApp, base_aliases, base_flags
+from traitlets.config import catch_config_error
+from traitlets import (
     Unicode, List, Bool, Type, CaselessStrEnum,
 )
 
 
 from .documents import TemporaryOutputDocument
-from .utils import get_by_name
 from .knitpy import DEFAULT_OUTPUT_FORMAT_NAME, VALID_OUTPUT_FORMAT_NAMES, Knitpy, ParseException
-
-
-#-----------------------------------------------------------------------------
-# Crash handler for this application
-#-----------------------------------------------------------------------------
-
-class KnitpyCrashHandler(CrashHandler):
-    """sys.excepthook for IPython itself, leaves a detailed report on disk."""
-
-    def __init__(self, app):
-        contact_name = "Jan Schulz"
-        contact_email = "jasc@gmx.net"
-        bug_tracker = 'https://github.com/janschulz/knitpy/issues'
-        super(KnitpyCrashHandler,self).__init__(
-            app, contact_name, contact_email, bug_tracker
-        )
+from .utils import get_by_name
 
 #-----------------------------------------------------------------------------
 # Main application
@@ -90,15 +73,13 @@ knitpy_flags.update({
 })
 
 
-class KnitpyApp(BaseIPythonApplication):
+class KnitpyApp(JupyterApp):
     """Application used to convert from markdown file type (``*.pymd``)"""
 
     name = 'knitpy'
     version = Unicode(u'0.1')
     aliases = knitpy_aliases
     flags = knitpy_flags
-
-    crash_handler_class = Type(KnitpyCrashHandler)
 
     def _log_level_default(self):
         return logging.INFO

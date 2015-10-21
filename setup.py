@@ -37,7 +37,10 @@ setup(
         ]
     },
     install_requires = [
-        'IPython>=3.0',
+        'jupyter_client',
+        'jupyter-core',
+        'traitlets',
+        'ipykernel',
         'pyzmq>=13',
         'pypandoc>=0.9.4',
         'pyyaml',

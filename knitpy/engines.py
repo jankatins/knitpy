@@ -4,8 +4,8 @@ __all__ = ["PythonKnitpyEngine"]
 
 LANGUAGE_ENGINES = []
 
-from IPython.config.configurable import LoggingConfigurable
-from IPython.utils.traitlets import Bool, Unicode, CaselessStrEnum, Instance
+from traitlets.config.configurable import LoggingConfigurable
+from traitlets import Bool, Unicode, CaselessStrEnum, Instance
 
 
 class BaseKnitpyEngine(LoggingConfigurable):
