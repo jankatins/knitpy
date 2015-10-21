@@ -28,18 +28,18 @@ except ImportError:
 
 from pypandoc import convert as pandoc
 
-from IPython.config.configurable import LoggingConfigurable
+from traitlets.config.configurable import LoggingConfigurable
 
-from IPython.utils.traitlets import (
+from traitlets import (
     Bool, Integer, CaselessStrEnum, CRegExp, Instance, Unicode, List
 )
-from IPython.utils import py3compat
-from IPython.utils.py3compat import unicode_type
-from IPython.utils.path import expand_path
+
+from .py3compat import unicode_type, iteritems, getcwd
+from .path import expand_path
 
 # Stuff for the kernels
-from IPython.kernel.multikernelmanager import MultiKernelManager
-from IPython.kernel.kernelspec import KernelSpecManager
+from jupyter_client.multikernelmanager import MultiKernelManager
+from jupyter_client.kernelspec import KernelSpecManager
 
 # Our own stuff
 from .documents import (TemporaryOutputDocument, FinalOutputConfiguration, KnitpyOutputException,
@@ -47,7 +47,6 @@ from .documents import (TemporaryOutputDocument, FinalOutputConfiguration, Knitp
                         DEFAULT_FINAL_OUTPUT_FORMATS, IMAGE_FILEEXTENSION_TO_MIMETYPE)
 from .engines import BaseKnitpyEngine, PythonKnitpyEngine
 from .utils import CRegExpMultiline, _plain_text, _code, is_string
-from IPython.utils.py3compat import iteritems
 
 TBLOCK, TINLINE, TTEXT = range(3)
 
@@ -698,7 +697,7 @@ class Knitpy(LoggingConfigurable):
         converted_docs = []
 
         # save here to change back after the conversation.
-        orig_cwd = os.getcwd()
+        orig_cwd = getcwd()
         needs_chdir = False
 
         # expand $HOME and so on...
@@ -710,7 +709,7 @@ class Knitpy(LoggingConfigurable):
         basename = os.path.splitext(os.path.basename(filename))[0]
 
         # It's easier if we just change wd to the dir of the file
-        if unicode_type(basedir) != py3compat.getcwd():
+        if unicode_type(basedir) != getcwd():
             os.chdir(basedir)
             needs_chdir = True
             self.log.info("Changing to working dir: %s" % basedir)
@@ -857,4 +856,8 @@ class ExecutionContext(LoggingConfigurable):
                         "include", "echo",  "include", "results"]
         for name in self.trait_names():
             if name in reset_needed:
-                self.traits()[name].set_default_value(self)
+                try:
+                    self.traits()[name].instance_init(self)
+                except AttributeError:
+                    # older ipython versions
+                    self.traits()[name].set_default_value(self)
