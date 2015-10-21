@@ -1,0 +1,17 @@
+name: knitpy_35
+dependencies:
+- python=3.5
+- jupyter_client>=4
+- jupyter_core>=4
+- traitlets
+- ipykernel>=4
+- pyyaml>=3.10
+- pyzmq>=14.0
+- pandas
+- matplotlib
+- nose>=1.3
+- pip>=7.1
+- pip:
+  - pypandoc
+  - sphinx
+  - tabulate
