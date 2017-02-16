@@ -252,24 +252,28 @@ class Knitpy(LoggingConfigurable):
                           engine.name)
 
         # configure the context
+
+        if "include" in args:
+            include = args.pop("include")
+            if not include:
+                context.echo = False
+                context.results = "hide"
+
         if "echo" in args:
             context.echo = args.pop("echo")
 
         # eval=False means that we don't execute the block at all
         if "eval" in args:
-            _eval =  args.pop("eval")
+            _eval = args.pop("eval")
             if _eval is False:
+                # We still should add the code block if echo is True.
                 if context.echo:
                     code = code.replace(os.linesep, "\n").lstrip("\n")
                     context.output.add_code(code, language=engine.language)
                 return
 
-
         if "results" in args:
             context.results = args.pop("results")
-
-        if "include" in args:
-            context.include = args.pop("include")
 
         if "chunk_label" in args:
             context.chunk_label = args.pop("chunk_label")
@@ -497,8 +501,7 @@ class Knitpy(LoggingConfigurable):
             ## So, from here on we have a messages with real content
             if self.kernel_debug:
                 self.log.debug("iopub msg (%s): %s",msg_type, msg)
-            if context.include:
-                self._handle_return_message(msg, context)
+            self._handle_return_message(msg, context)
 
         if not status_idle_again:
             self.log.error("Code lines didn't execute in time. Don't use long-running code in "
@@ -826,8 +829,10 @@ class ExecutionContext(LoggingConfigurable):
                                    "knitpy will pass through results without reformatting them "
                                    "(useful if results return raw HTML, etc.)")
 
-    include = Bool(True, config=False, help="If False, knitpy will will run the chunk but not "
-                                          "include the chunk in the final document.")
+    include = Bool(True, config=False,
+                   help="If False, knitpy will not "
+                        "show the code chunk or its results in the final "
+                        "document.")
 
     comment = Unicode(default_value="##", config=False, allow_none=True,
                       help="Prefix which is added to all (text) output; None or empty string will "
