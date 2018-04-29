@@ -20,7 +20,7 @@ are (aem... can potentially be) supported.
 ## What works:
 * code blocks and inline code
 * plots are shown inline
-* `knitpy filename.pymd` will convert filename `filename.pymd` to the defaul output format `html`.
+* `knitpy filename.pymd` will convert filename `filename.pymd` to the default output format `html`.
 * output formats `html`, `pdf` and `docx`. Change with `--to=<format>`
 * `--to=all` will convert to all export formats specified in the yaml header
 * code chunk arguments `eval`, `results` (apart form "hold"), `include` and `echo`
