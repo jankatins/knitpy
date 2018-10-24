@@ -33,7 +33,7 @@ are (aem... can potentially be) supported.
   `import knitpy; knitpy.render(filename.pymd, output="html")` will convert `filename.pymd`
   to `filename.html`. `output=all` will convert to all document types (as specified in the 
   YAML header of the document). The call will return a list of converted documents.
-* debugging with ``--debug`, `--kernel-debug=True`, `--output-debug=True`
+* debugging with `--debug`, `--kernel-debug=True`, `--output-debug=True`
 
 ## What does not work (=everything else :-) ):
 * most YAML headers are currently ignored
