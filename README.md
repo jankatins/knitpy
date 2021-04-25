@@ -1,3 +1,8 @@
+
+# THIS PROJECT IS NOT ANYMORE ACTIVE
+
+A replacement could be [jupyter-book](https://github.com/executablebooks/jupyter-book).
+
 # knitpy: Elegant, flexible and fast dynamic report generation with python
 
 This is a port of knitr (http://yihui.name/knitr/) and rmarkdown
